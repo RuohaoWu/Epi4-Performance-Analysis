@@ -1,0 +1,530 @@
+---
+title: "Delphi"
+author: "Ruohao Wu"
+date: "2023-03-10"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# This script is used to analyze the the Epi4 performance data. The purpose of this analysis is to compare three different systems
+
+
+# There are the library will be used to do the analyze
+```{r}
+# library for plot
+library(ggplot2)
+# library for data cleaning
+library(tidyr)
+```
+
+# Read dataset first, we have two different types of dataset with four files. There is one file about tab-delimited queries with two columns and a space-delimited results file with five columns.
+
+# The path here can be changed.
+```{r}
+# Read the datafile
+history <- read.delim("/Users/ruohaowu/Desktop/北美 工作/statsdev-epi4-materials/queries-history.tsv", 
+                      sep="\t", header = FALSE)
+V3 <- read.table("/Users/ruohaowu/Desktop/北美 工作/statsdev-epi4-materials/results-v3-history.txt",
+                 header = TRUE)
+V4.C <- read.table("/Users/ruohaowu/Desktop/北美 工作/statsdev-epi4-materials/results-v4.C-history.txt",
+                 header = TRUE)
+V4.M <- read.table("/Users/ruohaowu/Desktop/北美 工作/statsdev-epi4-materials/results-v4.M-history.txt",
+                 header = TRUE)
+```
+
+# After reaeding the file, I notice that history file doesn't have an index for each query which is different from the other file, for easier analyze for furture work, create a new column named 'no' and change the varaible name
+
+```{r}
+# assign a new column called no means the index of each query
+history$no <- 1:nrow(history)
+# Change the colum name into type and actual
+names(history)[1] <- "type"
+names(history)[2] <- "actual"
+```
+
+```{r}
+# View the observation of each dataset, it doesn't match
+nrow(history)
+nrow(V3)
+nrow(V4.C)
+nrow(V4.M)
+```
+
+# By looking at the observation, we fund the observation of two file doesn't match, I will check here
+
+```{r}
+# Check whether there is duplicate value
+# I would suppose here the no is the primary key and this step is not necessary.
+print(any(duplicated(V3$no)))
+print(any(duplicated(V4.C$no)))
+print(any(duplicated(V4.M$no)))
+```
+
+# The result indicates there is no duplicate in each datasets
+
+# Could it be there is gap?
+
+```{r}
+# Create dataframe for these index where the difference is not 1
+ind_V3 <- data.frame(which(diff(V3$no)!=1))
+names(ind_V3)[1] <- "ind"
+ind_V3
+ind_V4.C <- data.frame(which(diff(V4.C$no)!=1))
+names(ind_V4.C)[1] <- "ind"
+ind_V4.C
+ind_V4.M <- data.frame(which(diff(V4.M$no)!=1))
+names(ind_V4.M)[1] <- "ind"
+ind_V4.M
+# Check whether the index matches for three systems
+identical(ind_V3, ind_V4.C)
+```
+
+```{r}
+# This function is designed to see the missing observations
+
+# implement a auto function to remove the unmatched row
+
+if(!all(diff(V3$no) == 1)) {
+  # Find indices where difference is not 1
+  indices <- which(diff(V3$no) != 1)
+  # Find consecutive indices where difference is not 1
+  if(identical(ind_V3, ind_V4.C) == TRUE){
+    print(ind_V3)
+  }
+  # Iterate through indices and print corresponding rows
+    for (i in ind_V3$ind) {
+      row <- V3[i, ]
+      next_row <- V3[i+1, ]
+      # Find numbers in between two rows
+      nums <- (row$no+1):(next_row$no-1)
+      print(nums)
+      history <- history[-c(nums), ]
+    }
+  
+}
+```
+
+
+# Since the number of index in V3, V4.C, V4.M should be continuous. Then, we can apply the difference function to investigte. There is gap in these files, which means there is missing value. By further looking, the missing values are  index 3985, 3987-3989, 3992 and 4398. We should remove them in the history file.
+
+
+# Change the data type of run time in three dataset
+```{r}
+for (i in 2:5) {
+  V3[,i] <- as.numeric(as.character(V3[,i]))
+}
+
+for (i in 2:5) {
+  V4.C[,i] <- as.numeric(as.character(V4.C[,i]))
+}
+
+for (i in 2:5) {
+  V4.M[,i] <- as.numeric(as.character(V4.M[,i]))
+}
+```
+
+
+
+# Now,all these file has exactly the same observations with matched resutls and queries.
+
+
+# Should further clean the data in history, since we know the format of query_type is by '_'
+
+```{r, warning=FALSE}
+# Split the string into multiple strings based on '__', and put each type as its own column
+
+# Here, I still have something to implement but I don't know how.
+# Since the type could be longer than what we have in this dataset, 
+# only create four more columns is not reasonable
+# Need to identify how many axis_name then to create extra column 
+history_sep <- separate(history, type, 
+                    into = c("type1", "type2", "type3", "type4"), sep = "__")
+```
+
+#Let's stop here for initial data cleaning
+
+# There are several important varaibles that should be introduced here. 
+
+# real time: wall-clock time, it includes all the time spent by the program waiting for resources, such as I/O operations or user input, as well as the time spent executing instructions.
+
+# User time: It measures the amount of time the CPU spends running the program's code, excluding time spent waiting for I/O operations or other resources. CPU spent time is an important measure of the efficiency of a program's algorithm
+
+# Sys time: It includes time spent handling system calls, interrupts, and other low-level operations that require privileged access to the system. Kernel spent time is an important measure of the performance of the operating system, as well as the efficiency of the program's interaction with the system.
+
+# Here, we can perform some summary statistics
+
+
+```{r}
+summary(V3)
+```
+
+```{r}
+summary(V4.C)
+```
+
+```{r}
+summary(V4.M)
+```
+
+
+# As we can see from each summary statistics, there are several information we should notice
+
+# 1. The merge-based implementation is the only one has wall-clock time is 0
+
+# 2. The max real time for each system is greater than 10s. It is worth to investigate.
+
+## Real Run Time Analyze
+
+# let's focous on real run time.
+
+# let's take a look at the distribution
+
+```{r}
+# From the plot, the real run time is highly right skewed for V3
+ggplot(V3, aes(x=real)) + 
+  geom_histogram(binwidth=0.01) +
+  labs(x = "Wall Clock Time of V3", y = "Frequency") +
+  xlim(0, 0.5) +
+  ggtitle("Frequency of Wall Clock Time of V3") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+# From the plot, the real run time is also highly right skewed for V4.C
+# Compare to V3, the real run time increases compare to V3
+ggplot(V4.C, aes(x=real)) + 
+  geom_histogram(binwidth=0.01) +
+  labs(x = "Wall Clock Time of V4.C", y = "Frequency") +
+  xlim(0, 0.5) +
+  ggtitle("Frequency of Wall Clock Time of V4.C") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# From the plot, the real run time is also hightly right skewed for V4.M
+# Similar pattern like V4.C
+ggplot(V4.M, aes(x=real)) + 
+  geom_histogram(binwidth=0.01) +
+   labs(x = "Wall Clock Time of V4.M", y = "Frequency") +
+  xlim(0, 0.5) +
+  ggtitle("Frequency of Wall Clock Time of V4.M") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+# From the distribution, we can see the wall-clock time in all the systems are highly skewed. Therefore, it is not reasonable to see the the typical running time by mean since it is not normally distributed. We can look at the median instead to look at the typical running time. For V3, the median is 0.007s. For V4.C is 0.008, for V4.M is 0.01.
+
+# The result looks a bit award for me since the lastest version of system doesn't beat the old version in wall-clock running time. Therefore, I should further investigate.
+
+# Let's look at the worst and best case for each system
+
+# For V3, the best case for wall-clock time is  0.005s, the worst case is 17.121s For cpu-time spent the best case is 0 and the worst case is 0.24. For kernel-time spent, the best case is 0 and the worst case is 0.01
+
+# For V4.C, the best case for wall-clock time is  0.005s, the worst case is 15.997s. For cpu-time spent the best case is 0 and the worst case is 0.025. For kernel-time spent, the best case is 0 and the worst case is 0.011
+
+# For V4.M, the best case for wall-clock time is  0.005s, the worst case is 12.788s For cpu-time spent the best case is 0 and the worst case is 0.026. For kernel-time spent, the best case is 0 and the worst case is 0.011
+
+# From the summary statistic, we can see that the running time for real, cpu, and kernel for V4.C and V4.M are quite similar for best and wrost case. Something is a little but surprising is that V3 performs equally or better than V4.C and V4.M despite the worst case for wall-clock run time.
+
+# However, simply look at these is not convinced. We should try to look at the frequency for wall-clock time and percentage of how much cpu-time and user-time takes for wall-clock time.
+
+# Investigate wall-clock time first.
+
+
+# Use table command to do a summary statistics about the frequency of each time appears
+```{r}
+V3_real_freq <- data.frame(table(V3$real))
+names(V3_real_freq)[1] <- "wall clock time"
+V3_real_freq <- V3_real_freq[order(V3_real_freq$Freq, decreasing = TRUE), ]
+V3_real_freq
+V4.C_real_freq <- data.frame(table(V4.C$real))
+names(V4.C_real_freq)[1] <- "wall clock time"
+V4.C_real_freq <- V4.C_real_freq[order(V4.C_real_freq$Freq, decreasing = TRUE), ]
+V4.C_real_freq
+V4.M_real_freq <- data.frame(table(V4.M$real))
+names(V4.M_real_freq)[1] <- "wall clock time"
+V4.M_real_freq <- V4.M_real_freq[order(V4.M_real_freq$Freq, decreasing = TRUE), ]
+V4.M_real_freq
+```
+
+```{r}
+# Create the dataset with three groups only contains head three rows
+V3_head3 <- data.frame(head(V3_real_freq, n = 3), group = "V3")
+V4.C_head3 <- data.frame(head(V4.C_real_freq, n = 3),  group = "V4.C")
+V4.M_head3 <- data.frame(head(V4.M_real_freq, n = 3),  group = "V4.M")
+head3 <- rbind(V3_head3, V4.C_head3, V4.M_head3)
+# Create the histogram with three groups
+ggplot(data = head3, aes(x = wall.clock.time, y = Freq, fill = group)) +
+  geom_histogram(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  labs(x = "Wall Clock Time", y = "Frequency", fill = "Group") +
+  ggtitle("The Top 3 Frequency of Wall Clock Time Among Three Systems") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# From each summary table, we can see that the most frequent wall-clock time for V3 is 0.006s, for V4.C is 0.007s, for V4.M is 0.006s.
+
+# From the plot, it is very intuitive to see V3 is has the advantages in real wall-clock time 
+
+# This kind of match what we discover in previous summary statistic.
+
+# We can also do the same thing desedning order of wall-clock time
+
+```{r}
+V3_desc_time <- V3_real_freq[order(V3_real_freq$`wall clock time`), ]
+V3_desc_time
+V4.C_desc_time <- V4.C_real_freq[order(V4.C_real_freq$`wall clock time`), ]
+V4.C_desc_time
+V4.M_desc_time <- V4.M_real_freq[order(V4.M_real_freq$`wall clock time`), ]
+V4.M_desc_time
+```
+
+```{r}
+# Create the dataset with three groups only contains head three rows
+V3_time_head3 <- data.frame(head(V3_desc_time, n = 3), group = "V3")
+V4.C_time_head3 <- data.frame(head(V4.C_desc_time, n = 3),  group = "V4.C")
+V4.M_time_head3 <- data.frame(head(V4.M_desc_time, n = 3),  group = "V4.M")
+head3_time <- rbind(V3_time_head3, V4.C_time_head3, V4.M_time_head3)
+# Create the histogram with three groups
+ggplot(data = head3_time, aes(x = head3_time$wall.clock.time, y = head3_time$Freq, fill = group)) +
+  geom_histogram(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  labs(x = "Wall Clock Time", y = "Frequency", fill = "Group") +
+  ggtitle("Frequency of The Shortest 3 Wall Clock Time Among Three Systems") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# This table also shows that the requency of min wall-clock time for V3 is the most among the three systems. 
+
+# The plot also shows for differnet V3 has advantages in wall-clock time.
+
+
+# We can seperate the wall-clock time in several range, 0-0.05, 0.051-0.1, 0.101 - 0.5, >0.5
+
+# First, do it for V3, then for V4.C and V4.M
+
+# The time interval here is subjective to change, I just randomly pick what I think makes sense here
+
+
+```{r}
+V3_real_freq$`wall clock time` <- as.numeric(as.character(V3_real_freq$`wall clock time`))
+
+# Filter rows where wall clock time is between 0 and 0.05 and calculate sum of Freq column
+V3_sum_freq_0.05 <- sum(subset
+                        (V3_real_freq, V3_real_freq$"wall clock time" >= 0 &
+                            V3_real_freq$"wall clock time" <= 0.05)$Freq)
+
+# Filter rows where wall clock time is between 0.051 and 0.1 and calculate sum of Freq column
+V3_sum_freq_0.1 <- sum(subset
+                        (V3_real_freq, V3_real_freq$"wall clock time" >= 0.051 &
+                            V3_real_freq$"wall clock time" <= 0.1)$Freq)
+
+# Filter rows where wall clock time is between 0.101 and 0.5 and calculate sum of Freq column
+V3_sum_freq_0.5 <- sum(subset
+                         (V3_real_freq, V3_real_freq$"wall clock time" >= 0.101 & 
+                             V3_real_freq$"wall clock time" <= 0.5)$Freq)
+
+# Filter rows where wall clock time is greater than 0.5 and calculate sum of Freq column
+V3_sum_freq_0.501 <- sum(subset(V3_real_freq, V3_real_freq$"wall clock time" >= 0.501)$Freq)
+
+V3_freq <- data.frame(col1 = c("0 and 0.05", "0.051 and 0.1",
+                               "0.101 and 0.5", ">=0.501"), 
+                      col2 = c(V3_sum_freq_0.05, V3_sum_freq_0.1,
+                               V3_sum_freq_0.5, V3_sum_freq_0.501))
+names(V3_freq)[1] <- " Time Interval"
+names(V3_freq)[2] <- "Frequency"
+V3_freq <- data.frame(V3_freq,  group = "V3")
+```
+
+
+# V4.C 
+```{r}
+V4.C_real_freq$`wall clock time` <- as.numeric(as.character(V4.C_real_freq$`wall clock time`))
+
+# Filter rows where wall clock time is between 0 and 0.05 and calculate sum of Freq column
+V4.C_sum_freq_0.05 <- sum(subset
+                        (V4.C_real_freq, V4.C_real_freq$"wall clock time" >= 0 &
+                            V4.C_real_freq$"wall clock time" <= 0.05)$Freq)
+
+# Filter rows where wall clock time is between 0.051 and 0.1 and calculate sum of Freq column
+V4.C_sum_freq_0.1 <- sum(subset
+                        (V4.C_real_freq, V4.C_real_freq$"wall clock time" >= 0.051 &
+                            V4.C_real_freq$"wall clock time" <= 0.1)$Freq)
+
+# Filter rows where wall clock time is between 0.101 and 0.5 and calculate sum of Freq column
+V4.C_sum_freq_0.5 <- sum(subset
+                         (V4.C_real_freq, V4.C_real_freq$"wall clock time" >= 0.101 & 
+                             V4.C_real_freq$"wall clock time" <= 0.5)$Freq)
+
+# Filter rows where wall clock time is greater than 0.5 and calculate sum of Freq column
+V4.C_sum_freq_0.501 <- sum(subset(V4.C_real_freq, V4.C_real_freq$"wall clock time" >= 0.501)$Freq)
+
+V4.C_freq <- data.frame(col1 = c("0 and 0.05", "0.051 and 0.1",
+                               "0.101 and 0.5", ">=0.501"), 
+                      col2 = c(V4.C_sum_freq_0.05, V4.C_sum_freq_0.1,
+                               V4.C_sum_freq_0.5, V4.C_sum_freq_0.501))
+names(V4.C_freq)[1] <- " Time Interval"
+names(V4.C_freq)[2] <- "Frequency"
+V4.C_freq <- data.frame(V4.C_freq,  group = "V4.C")
+```
+
+# V4.M
+```{r}
+V4.M_real_freq$`wall clock time` <- as.numeric(as.character(V4.M_real_freq$`wall clock time`))
+
+# Filter rows where wall clock time is between 0 and 0.05 and calculate sum of Freq column
+V4.M_sum_freq_0.05 <- sum(subset
+                        (V4.M_real_freq, V4.M_real_freq$"wall clock time" >= 0 &
+                            V4.M_real_freq$"wall clock time" <= 0.05)$Freq)
+
+# Filter rows where wall clock time is between 0.051 and 0.1 and calculate sum of Freq column
+V4.M_sum_freq_0.1 <- sum(subset
+                        (V4.M_real_freq, V4.M_real_freq$"wall clock time" >= 0.051 &
+                            V4.M_real_freq$"wall clock time" <= 0.1)$Freq)
+
+# Filter rows where wall clock time is between 0.101 and 0.5 and calculate sum of Freq column
+V4.M_sum_freq_0.5 <- sum(subset
+                         (V4.M_real_freq, V4.M_real_freq$"wall clock time" >= 0.101 & 
+                             V4.M_real_freq$"wall clock time" <= 0.5)$Freq)
+
+# Filter rows where wall clock time is greater than 0.5 and calculate sum of Freq column
+V4.M_sum_freq_0.501 <- sum(subset(V4.M_real_freq, V4.M_real_freq$"wall clock time" >= 0.501)$Freq)
+
+V4.M_freq <- data.frame(col1 = c("0 and 0.05", "0.051 and 0.1",
+                               "0.101 and 0.5", ">=0.501"), 
+                      col2 = c(V4.M_sum_freq_0.05, V4.M_sum_freq_0.1,
+                               V4.M_sum_freq_0.5, V4.M_sum_freq_0.501))
+names(V4.M_freq)[1] <- " Time Interval"
+names(V4.M_freq)[2] <- "Frequency"
+V4.M_freq <- data.frame(V4.M_freq,  group = "V4.M")
+```
+
+
+```{r}
+duration <- rbind(V3_freq, V4.C_freq, V4.M_freq)
+# Create the histogram with three groups
+ggplot(data = duration, aes(x = duration$X.Time.Interval, y = duration$Frequency, fill = group)) +
+  geom_histogram(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  labs(x = "Time Duration", y = "Frequency", fill = "Group") +
+  ggtitle("Frequency of Duration Wall Clock Time Among Three Systems") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# This plot also matches what we find in previous plot and table. However, there is another pattern that duration from 0.051, the V4.M seems took longer than V3 and V4.C.
+
+## Here, we are done with analyzing real time
+
+# Now, let's analyze the cpu run time and kernel run time.
+
+```{r}
+# Loop through each row of the dataset
+for (i in 1:nrow(V3)) {
+  # Calculate percentage of cputime/realtime and add as a new column
+  V3$cputime_percent[i] <- V3$user[i] / V3$real[i] * 100
+  
+  # Calculate percentage of kerneltime/realtime and add as a new column
+  V3$kerneltime_percent[i] <- V3$sys[i] / V3$real[i] * 100
+  
+  # Replace NA values with 0
+  V3$cputime_percent[i] <- ifelse(is.na(V3$cputime_percent[i]), 0, V3$cputime_percent[i])
+  V3$kerneltime_percent[i] <- ifelse(is.na(V3$kerneltime_percent[i]), 0, V3$kerneltime_percent[i])
+}
+
+V3_perc <- V3
+
+
+#For V4.C
+# Loop through each row of the dataset
+for (i in 1:nrow(V4.C)) {
+  # Calculate percentage of cputime/realtime and add as a new column
+  V4.C$cputime_percent[i] <- V4.C$user[i] / V4.C$real[i] * 100
+  
+  # Calculate percentage of kerneltime/realtime and add as a new column
+  V4.C$kerneltime_percent[i] <- V4.C$sys[i] / V4.C$real[i] * 100
+  
+  # Replace NA values with 0
+  V4.C$cputime_percent[i] <- ifelse(is.na(V4.C$cputime_percent[i]), 0, V4.C$cputime_percent[i])
+  V4.C$kerneltime_percent[i] <- ifelse(is.na(V4.C$kerneltime_percent[i]), 0, V4.C$kerneltime_percent[i])
+}
+
+V4.C_perc <- V4.C
+
+# Loop through each row of the dataset
+for (i in 1:nrow(V4.M)) {
+  # Calculate percentage of cputime/realtime and add as a new column
+  V4.M$cputime_percent[i] <- V4.M$user[i] / V4.M$real[i] * 100
+  
+  # Calculate percentage of kerneltime/realtime and add as a new column
+  V4.M$kerneltime_percent[i] <- V4.M$sys[i] / V4.M$real[i] * 100
+  
+  # Replace NA values with 0
+  V4.M$cputime_percent[i] <- ifelse(is.na(V4.M$cputime_percent[i]), 0, V4.M$cputime_percent[i])
+  V4.M$kerneltime_percent[i] <- ifelse(is.na(V4.M$kerneltime_percent[i]), 0, V4.M$kerneltime_percent[i])
+}
+
+V4.M_perc <- V4.M
+```
+
+```{r}
+# summary(V3_perc)
+# summary(V4.C_perc)
+# summary(V4.M_perc)
+```
+
+
+```{r}
+# From the plot, the real run time is highly right skewed for V3
+ggplot(V3_perc, aes(x=cputime_percent)) + 
+  geom_histogram(binwidth=5) +
+  labs(x = "cputime_percent", y = "Frequency") +
+  ggtitle("Frequency of cputime_percen in V3") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+# From the plot, the real run time is highly right skewed for V4.C
+ggplot(V4.C_perc, aes(x=cputime_percent)) + 
+  geom_histogram(binwidth=5) +
+  labs(x = "cputime_percent", y = "Frequency") +
+  ggtitle("Frequency of cputime_percen in V4.C") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# From the plot, the real run time is highly right skewed for V4.M
+ggplot(V4.M_perc, aes(x=cputime_percent)) + 
+  geom_histogram(binwidth=5) +
+  labs(x = "cputime_percent", y = "Frequency") +
+  ggtitle("Frequency of cputime_percen in V4.M") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+```{r}
+# From the plot, the real run time is highly right skewed for V3
+ggplot(V3_perc, aes(x=kerneltime_percent)) + 
+  geom_histogram(binwidth=5) +
+  labs(x = "kerneltime_percent", y = "Frequency") +
+  ggtitle("Frequency of kerneltime_percent in V3") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+
+```{r}
+# From the plot, the real run time is highly right skewed for V4.C_perc
+ggplot(V4.C_perc, aes(x=kerneltime_percent)) + 
+  geom_histogram(binwidth=5) +
+  labs(x = "kerneltime_percent", y = "Frequency") +
+  ggtitle("Frequency of kerneltime_percent in V4.C_perc") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+# From the plot, the real run time is highly right skewed for V3
+ggplot(V4.M_perc, aes(x=kerneltime_percent)) + 
+  geom_histogram(binwidth=5) +
+  labs(x = "kerneltime_percent", y = "Frequency") +
+  ggtitle("Frequency of kerneltime_percent in V4.M_perc") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
