@@ -11,20 +11,25 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# This script is used to analyze the the Epi4 performance data. The purpose of this analysis is to compare three different systems
+This script is used to analyze the the Epi4 performance data. The purpose of this analysis is to compare three different systems
 
 
-# There are the library will be used to do the analyze
+There are the library will be used to do the analyze
 ```{r}
 # library for plot
 library(ggplot2)
 # library for data cleaning
 library(tidyr)
+# Draw RidgeLine Plot
+library(ggridges)
+# For the pie chart
+library(scales)
 ```
 
-# Read dataset first, we have two different types of dataset with four files. There is one file about tab-delimited queries with two columns and a space-delimited results file with five columns.
+Read dataset first, we have two different types of dataset with four files. There is one file about tab-delimited queries with two columns and a space-delimited results file with five columns.
 
-# The path here can be changed.
+The path here can be changed.
+
 ```{r}
 # Read the datafile
 history <- read.delim("/Users/ruohaowu/Desktop/北美 工作/statsdev-epi4-materials/queries-history.tsv", 
@@ -37,7 +42,7 @@ V4.M <- read.table("/Users/ruohaowu/Desktop/北美 工作/statsdev-epi4-material
                  header = TRUE)
 ```
 
-# After reaeding the file, I notice that history file doesn't have an index for each query which is different from the other file, for easier analyze for furture work, create a new column named 'no' and change the varaible name
+After reaeding the file, I notice that history file doesn't have an index for each query which is different from the other file, for easier analyze for furture work, create a new column named 'no' and change the varaible name
 
 ```{r}
 # assign a new column called no means the index of each query
@@ -55,7 +60,7 @@ nrow(V4.C)
 nrow(V4.M)
 ```
 
-# By looking at the observation, we fund the observation of two file doesn't match, I will check here
+By looking at the observation, we fund the observation of two file doesn't match, I will check here
 
 ```{r}
 # Check whether there is duplicate value
@@ -65,9 +70,9 @@ print(any(duplicated(V4.C$no)))
 print(any(duplicated(V4.M$no)))
 ```
 
-# The result indicates there is no duplicate in each datasets
+The result indicates there is no duplicate in each datasets
 
-# Could it be there is gap?
+Could it be there is gap?
 
 ```{r}
 # Create dataframe for these index where the difference is not 1
@@ -110,10 +115,12 @@ if(!all(diff(V3$no) == 1)) {
 ```
 
 
-# Since the number of index in V3, V4.C, V4.M should be continuous. Then, we can apply the difference function to investigte. There is gap in these files, which means there is missing value. By further looking, the missing values are  index 3985, 3987-3989, 3992 and 4398. We should remove them in the history file.
+Since the number of index in V3, V4.C, V4.M should be continuous. Then, we can apply the difference function to investigte. There is gap in these files, which means there is missing value. By further looking, the missing values are  index 3985, 3987-3989, 3992 and 4398. We should remove them in the history file.
 
 
-# Change the data type of run time in three dataset
+Change the data type of run time in three dataset
+
+
 ```{r}
 for (i in 2:5) {
   V3[,i] <- as.numeric(as.character(V3[,i]))
@@ -129,11 +136,10 @@ for (i in 2:5) {
 ```
 
 
+ Now,all these file has exactly the same observations with matched resutls and queries.
 
-# Now,all these file has exactly the same observations with matched resutls and queries.
 
-
-# Should further clean the data in history, since we know the format of query_type is by '_'
+Should further clean the data in history, since we know the format of query_type is by '_'
 
 ```{r, warning=FALSE}
 # Split the string into multiple strings based on '__', and put each type as its own column
@@ -146,15 +152,15 @@ history_sep <- separate(history, type,
                     into = c("type1", "type2", "type3", "type4"), sep = "__")
 ```
 
-#Let's stop here for initial data cleaning
+Let's stop here for initial data cleaning
 
-# There are several important varaibles that should be introduced here. 
+There are several important varaibles that should be introduced here. 
 
-# real time: wall-clock time, it includes all the time spent by the program waiting for resources, such as I/O operations or user input, as well as the time spent executing instructions.
+real time: wall-clock time, it includes all the time spent by the program waiting for resources, such as I/O operations or user input, as well as the time spent executing instructions.
 
-# User time: It measures the amount of time the CPU spends running the program's code, excluding time spent waiting for I/O operations or other resources. CPU spent time is an important measure of the efficiency of a program's algorithm
+User time: It measures the amount of time the CPU spends running the program's code, excluding time spent waiting for I/O operations or other resources. CPU spent time is an important measure of the efficiency of a program's algorithm
 
-# Sys time: It includes time spent handling system calls, interrupts, and other low-level operations that require privileged access to the system. Kernel spent time is an important measure of the performance of the operating system, as well as the efficiency of the program's interaction with the system.
+Sys time: It includes time spent handling system calls, interrupts, and other low-level operations that require privileged access to the system. Kernel spent time is an important measure of the performance of the operating system, as well as the efficiency of the program's interaction with the system.
 
 # Here, we can perform some summary statistics
 
@@ -172,17 +178,17 @@ summary(V4.M)
 ```
 
 
-# As we can see from each summary statistics, there are several information we should notice
+As we can see from each summary statistics, there are several information we should notice
 
-# 1. The merge-based implementation is the only one has wall-clock time is 0
+1. The merge-based implementation is the only one has wall-clock time is 0
 
-# 2. The max real time for each system is greater than 10s. It is worth to investigate.
+2. The max real time for each system is greater than 10s. It is worth to investigate.
 
 ## Real Run Time Analyze
 
-# let's focous on real run time.
+let's focous on real run time.
 
-# let's take a look at the distribution
+let's take a look at the distribution
 
 ```{r}
 # From the plot, the real run time is highly right skewed for V3
@@ -212,26 +218,28 @@ ggplot(V4.M, aes(x=real)) +
   ggtitle("Frequency of Wall Clock Time of V4.M") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
-# From the distribution, we can see the wall-clock time in all the systems are highly skewed. Therefore, it is not reasonable to see the the typical running time by mean since it is not normally distributed. We can look at the median instead to look at the typical running time. For V3, the median is 0.007s. For V4.C is 0.008, for V4.M is 0.01.
+From the distribution, we can see the wall-clock time in all the systems are highly skewed. Therefore, it is not reasonable to see the the typical running time by mean since it is not normally distributed. We can look at the median instead to look at the typical running time. For V3, the median is 0.007s. For V4.C is 0.008, for V4.M is 0.01.
 
-# The result looks a bit award for me since the lastest version of system doesn't beat the old version in wall-clock running time. Therefore, I should further investigate.
+The result looks a bit award for me since the lastest version of system doesn't beat the old version in wall-clock running time. Therefore, I should further investigate.
 
-# Let's look at the worst and best case for each system
+Let's look at the worst and best case for each system
 
-# For V3, the best case for wall-clock time is  0.005s, the worst case is 17.121s For cpu-time spent the best case is 0 and the worst case is 0.24. For kernel-time spent, the best case is 0 and the worst case is 0.01
+For V3, the best case for wall-clock time is  0.005s, the worst case is 17.121s For cpu-time spent the best case is 0 and the worst case is 0.24. For kernel-time spent, the best case is 0 and the worst case is 0.01
 
-# For V4.C, the best case for wall-clock time is  0.005s, the worst case is 15.997s. For cpu-time spent the best case is 0 and the worst case is 0.025. For kernel-time spent, the best case is 0 and the worst case is 0.011
+For V4.C, the best case for wall-clock time is  0.005s, the worst case is 15.997s. For cpu-time spent the best case is 0 and the worst case is 0.025. For kernel-time spent, the best case is 0 and the worst case is 0.011
 
-# For V4.M, the best case for wall-clock time is  0.005s, the worst case is 12.788s For cpu-time spent the best case is 0 and the worst case is 0.026. For kernel-time spent, the best case is 0 and the worst case is 0.011
+For V4.M, the best case for wall-clock time is  0.005s, the worst case is 12.788s For cpu-time spent the best case is 0 and the worst case is 0.026. For kernel-time spent, the best case is 0 and the worst case is 0.011
 
-# From the summary statistic, we can see that the running time for real, cpu, and kernel for V4.C and V4.M are quite similar for best and wrost case. Something is a little but surprising is that V3 performs equally or better than V4.C and V4.M despite the worst case for wall-clock run time.
+From the summary statistic, we can see that the running time for real, cpu, and kernel for V4.C and V4.M are quite similar for best and wrost case. Something is a little but surprising is that V3 performs equally or better than V4.C and V4.M despite the worst case for wall-clock run time.
 
-# However, simply look at these is not convinced. We should try to look at the frequency for wall-clock time and percentage of how much cpu-time and user-time takes for wall-clock time.
+However, simply look at these is not convinced. We should try to look at the frequency for wall-clock time and percentage of how much cpu-time and user-time takes for wall-clock time.
 
-# Investigate wall-clock time first.
+Investigate wall-clock time first.
 
 
-# Use table command to do a summary statistics about the frequency of each time appears
+Use table command to do a summary statistics about the frequency of each time appears
+
+
 ```{r}
 V3_real_freq <- data.frame(table(V3$real))
 names(V3_real_freq)[1] <- "wall clock time"
@@ -262,13 +270,13 @@ ggplot(data = head3, aes(x = wall.clock.time, y = Freq, fill = group)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-# From each summary table, we can see that the most frequent wall-clock time for V3 is 0.006s, for V4.C is 0.007s, for V4.M is 0.006s.
+From each summary table, we can see that the most frequent wall-clock time for V3 is 0.006s, for V4.C is 0.007s, for V4.M is 0.006s.
 
-# From the plot, it is very intuitive to see V3 is has the advantages in real wall-clock time 
+From the plot, it is very intuitive to see V3 is has the advantages in real wall-clock time 
 
-# This kind of match what we discover in previous summary statistic.
+This kind of match what we discover in previous summary statistic.
 
-# We can also do the same thing desedning order of wall-clock time
+We can also do the same thing desedning order of wall-clock time
 
 ```{r}
 V3_desc_time <- V3_real_freq[order(V3_real_freq$`wall clock time`), ]
@@ -294,17 +302,18 @@ ggplot(data = head3_time, aes(x = head3_time$wall.clock.time, y = head3_time$Fre
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-# This table also shows that the requency of min wall-clock time for V3 is the most among the three systems. 
+This table also shows that the requency of min wall-clock time for V3 is the most among the three systems. 
 
-# The plot also shows for differnet V3 has advantages in wall-clock time.
+The plot also shows for differnet V3 has advantages in wall-clock time.
 
 
-# We can seperate the wall-clock time in several range, 0-0.05, 0.051-0.1, 0.101 - 0.5, >0.5
+We can seperate the wall-clock time in several range, 0-0.05, 0.051-0.1, 0.101 - 0.5, >0.5
 
-# First, do it for V3, then for V4.C and V4.M
+First, do it for V3, then for V4.C and V4.M
 
-# The time interval here is subjective to change, I just randomly pick what I think makes sense here
+The time interval here is subjective to change, I just randomly pick what I think makes sense here
 
+#V3
 
 ```{r}
 V3_real_freq$`wall clock time` <- as.numeric(as.character(V3_real_freq$`wall clock time`))
@@ -338,6 +347,7 @@ V3_freq <- data.frame(V3_freq,  group = "V3")
 
 
 # V4.C 
+
 ```{r}
 V4.C_real_freq$`wall clock time` <- as.numeric(as.character(V4.C_real_freq$`wall clock time`))
 
@@ -369,6 +379,7 @@ V4.C_freq <- data.frame(V4.C_freq,  group = "V4.C")
 ```
 
 # V4.M
+
 ```{r}
 V4.M_real_freq$`wall clock time` <- as.numeric(as.character(V4.M_real_freq$`wall clock time`))
 
@@ -411,11 +422,11 @@ ggplot(data = duration, aes(x = duration$X.Time.Interval, y = duration$Frequency
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-# This plot also matches what we find in previous plot and table. However, there is another pattern that duration from 0.051, the V4.M seems took longer than V3 and V4.C.
+This plot also matches what we find in previous plot and table. However, there is another pattern that duration from 0.051, the V4.M seems took longer than V3 and V4.C.
 
-## Here, we are done with analyzing real time
+Here, we are done with analyzing real time
 
-# Now, let's analyze the cpu run time and kernel run time.
+############################Now, let's analyze the cpu run time and kernel run time.##################################
 
 ```{r}
 # Loop through each row of the dataset
@@ -472,7 +483,7 @@ V4.M_perc <- V4.M
 # summary(V4.M_perc)
 ```
 
-
+# The CPU run time for V3
 ```{r}
 # From the plot, the real run time is highly right skewed for V3
 ggplot(V3_perc, aes(x=cputime_percent)) + 
@@ -482,7 +493,7 @@ ggplot(V3_perc, aes(x=cputime_percent)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-
+# The CPU run time for V4.C
 ```{r}
 # From the plot, the real run time is highly right skewed for V4.C
 ggplot(V4.C_perc, aes(x=cputime_percent)) + 
@@ -492,6 +503,7 @@ ggplot(V4.C_perc, aes(x=cputime_percent)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+#The CPU Run time for V4.M
 ```{r}
 # From the plot, the real run time is highly right skewed for V4.M
 ggplot(V4.M_perc, aes(x=cputime_percent)) + 
@@ -500,6 +512,9 @@ ggplot(V4.M_perc, aes(x=cputime_percent)) +
   ggtitle("Frequency of cputime_percen in V4.M") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
+
+# The Kernel Run Time for V3
 ```{r}
 # From the plot, the real run time is highly right skewed for V3
 ggplot(V3_perc, aes(x=kerneltime_percent)) + 
@@ -510,7 +525,7 @@ ggplot(V3_perc, aes(x=kerneltime_percent)) +
 ```
 
 
-
+# The Kernel Run Time for V4.C
 ```{r}
 # From the plot, the real run time is highly right skewed for V4.C_perc
 ggplot(V4.C_perc, aes(x=kerneltime_percent)) + 
@@ -520,6 +535,8 @@ ggplot(V4.C_perc, aes(x=kerneltime_percent)) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+
+# The Kernel Run Time For V4.M
 ```{r}
 # From the plot, the real run time is highly right skewed for V3
 ggplot(V4.M_perc, aes(x=kerneltime_percent)) + 
@@ -528,3 +545,391 @@ ggplot(V4.M_perc, aes(x=kerneltime_percent)) +
   ggtitle("Frequency of kerneltime_percent in V4.M_perc") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
+
+It is really hard to compare separately. It is better to use a conditional violin plot.
+
+Create a new dataset contains all of the cpu and kernel run time with respect to different systems.
+
+```{r}
+# Select the last two columns which is cpu run time perc and kernel run time perc
+V3_cpu <- data.frame(V3_perc[, (ncol(V3_perc)-1)], group = "V3 CPU")
+names(V3_cpu)[1] <- "run_time_perc"
+V3_kernel <- data.frame(V3_perc[, (ncol(V3_perc))], group = "V3 Kernel")
+names(V3_kernel)[1] <- "run_time_perc"
+
+V4.C_cpu <- data.frame(V4.C_perc[, (ncol(V4.C_perc)-1)], group = "V4.C CPU")
+names(V4.C_cpu)[1] <- "run_time_perc"
+V4.C_kernel <- data.frame(V4.C_perc[, (ncol(V4.C_perc))], group = "V4.C Kernel")
+names(V4.C_kernel)[1] <- "run_time_perc"
+
+V4.M_cpu <- data.frame(V4.M_perc[, (ncol(V4.M_perc)-1)], group = "V4.M CPU")
+names(V4.M_cpu)[1] <- "run_time_perc"
+V4.M_kernel <- data.frame(V4.M_perc[, (ncol(V4.M_perc))], group = "V4.M Kernel")
+names(V4.M_kernel)[1] <- "run_time_perc"
+
+# Combine all the previous data frame to make a big data set contains all the cpu kernel run time for three systems
+perc <- rbind(V3_cpu, V3_kernel, V4.C_cpu, V4.C_kernel, V4.M_cpu, V4.M_kernel)
+```
+
+# Draw a facet histogram
+
+```{r}
+perc %>%
+  ggplot(aes(x = run_time_perc)) +
+  geom_histogram()+
+  labs(x = "run time perc",
+       y = "Frequency",
+       title = "Facetted Histograms of CPU and Kernel Run Time Percent")+
+  facet_wrap(~ group)+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+It is a little bit easier to observe and compare.
+
+```{r}
+# 
+perc %>%
+  ggplot(aes(x = run_time_perc)) +
+  geom_density(aes(fill = group),
+               alpha = .3)+
+  labs(x = "run time perc",
+       y = "Density",
+       title = "Density Plot of CPU and Kernel Run Time Percent")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From this density plot, we can see a clear pattern that the percentage of V4.M kernel run time is much less than kernel run time of other systems which may indicates V4.M has efficiency in kernel run time.
+
+```{r}
+perc %>%
+  ggplot(aes(x = run_time_perc,
+             y = group)) +
+  geom_density_ridges()+
+  labs(x = "run time perc",
+       y = "Density",
+       title = "Ridgeline Plot of CPU and Kernel Run Time Percent")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+From the ridgeline plot, we can also observe that the V3 has a deficiency in cpu run time since it has two peak after 80% percent while V4.C and V4.M only have one.
+
+Also, we can observe that the density of V4.M in cpu runs time also is flatter than V4.C and V3.
+
+Overall, we can assume that V4.M has an overall advantage of cpu run time and kernel run time.
+
+
+#####################It could be end of the cpu and kernel run time analysis in a big picture#########################
+
+
+The previous analysis is based on the whole dataset regardless of the number of rows that returned.
+
+It is also reasonable to separate the data into query that returns row and returns none
+
+# Make seperate dataset that query returns something and none
+
+```{r}
+# If rows = 0, the query returns nothing
+V3_none <- subset(V3, V3$rows == 0)
+V4.C_none <- subset(V4.C, V4.C$rows == 0)
+V4.M_none <- subset(V4.M, V4.M$rows == 0)
+
+# If rows !=0, the query returns at least one row
+V3_return <- subset(V3, V3$rows != 0)
+V4.C_return <- subset(V4.C, V4.C$rows != 0)
+V4.M_return <- subset(V4.M, V4.M$rows != 0)
+```
+
+Now, we have six different datasets that each systems file are divided into returns 0 row or at least 1 row
+
+We could do something simple at first place, we could draw a pie chart
+
+```{r}
+# Each run time for V3 that nothing return
+V3_none_sumreal <- sum(V3_none$real)
+V3_none_sumcpu <- sum(V3_none$user)
+V3_none_sumker <- sum(V3_none$sys)
+
+# Each run time for V4.C that nothing return
+V4.C_none_sumreal <- sum(V4.C_none$real)
+V4.C_none_sumcpu <- sum(V4.C_none$user)
+V4.C_none_sumker <- sum(V4.C_none$sys)
+
+# Each run time for V4.M that nothing return
+V4.M_none_sumreal <- sum(V4.M_none$real)
+V4.M_none_sumcpu <- sum(V4.M_none$user)
+V4.M_none_sumker <- sum(V4.M_none$sys)
+```
+
+
+```{r}
+# create a vector with sum of wall-clock time to plot
+sumreal <- c(V3_none_sumreal, V4.C_none_sumreal, V4.M_none_sumreal)
+# create a vector with labels for each value
+labels <- c("V3", "V4.C", "V4.M")
+# create a pie chart with default colors
+pie(sumreal, labels = percent(sumreal/sum(sumreal)), 
+    main = "Pie Chart of Wall Clock Time of Three Systems Returns None", col = rainbow(length(sumreal)))
+# add a legend to the chart
+legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumreal)))
+```
+From the pie chart, we can see that V4.M is has the most wall clock run time among the three and V3 has the least for not returning anything.
+
+```{r}
+# create a vector with sum of cpu run time to plot
+sumcpu <- c(V3_none_sumcpu, V4.C_none_sumcpu, V4.M_none_sumcpu)
+# create a vector with labels for each value
+labels <- c("V3", "V4.C", "V4.M")
+# create a pie chart with default colors
+pie(sumcpu, labels = percent(sumcpu/sum(sumcpu)), 
+    main = "Pie Chart of CPU Time of Three Systems Returns None", col = rainbow(length(sumcpu)))
+# add a legend to the chart
+legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumcpu)))
+```
+
+For three systems that returns nothing, we can clearly see that each systems has approximately same cpu run time, the V3 has a little bit advantages. V4.C has the most cpu runs time,
+
+```{r}
+# create a vector with sum of kernel run time to plot
+sumker <- c(V3_none_sumker, V4.C_none_sumker, V4.M_none_sumker)
+# create a vector with labels for each value
+labels <- c("V3", "V4.C", "V4.M")
+# create a pie chart with default colors
+pie(sumker, labels = percent(sumker/sum(sumker)), 
+    main = "Pie Chart of Kernel Time of Three Systems Returns None", col = rainbow(length(sumker)))
+# add a legend to the chart
+legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumker)))
+```
+
+The kernel runs time shows a similar pattern like cpu runs time. V4.C has the most and V3 has the least.
+
+# What about returns at least one row
+
+```{r}
+# Each run time for V3 that something return
+V3_return_sumreal <- sum(V3_return$real)
+V3_return_sumcpu <- sum(V3_return$user)
+V3_return_sumker <- sum(V3_return$sys)
+
+# Each run time for V4.C that something return
+V4.C_return_sumreal <- sum(V4.C_return$real)
+V4.C_return_sumcpu <- sum(V4.C_return$user)
+V4.C_return_sumker <- sum(V4.C_return$sys)
+
+# Each run time for V4.M that something return
+V4.M_return_sumreal <- sum(V4.M_return$real)
+V4.M_return_sumcpu <- sum(V4.M_return$user)
+V4.M_return_sumker <- sum(V4.M_return$sys)
+```
+
+```{r}
+# create a vector with sum of wall-clock time to plot
+sumreal <- c(V3_return_sumreal, V4.C_return_sumreal, V4.M_return_sumreal)
+# create a vector with labels for each value
+labels <- c("V3", "V4.C", "V4.M")
+# create a pie chart with default colors
+pie(sumreal, labels = percent(sumreal/sum(sumreal)), 
+    main = "Pie Chart of Wall Clock Time of Three Systems Returns", col = rainbow(length(sumreal)))
+# add a legend to the chart
+legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumreal)))
+```
+
+For query that has something return, the result is quite different. V4.C takes much longer than other V3 and class to V4.M. For wall-clock time, it seems like V3 is very efficient for query that has something return.
+
+```{r}
+# create a vector with sum of cpu run time to plot
+sumcpu <- c(V3_return_sumcpu, V4.C_return_sumcpu, V4.M_return_sumcpu)
+# create a vector with labels for each value
+labels <- c("V3", "V4.C", "V4.M")
+# create a pie chart with default colors
+pie(sumcpu, labels = percent(sumcpu/sum(sumcpu)), 
+    main = "Pie Chart of CPU Run Time of Three Systems Returns", col = rainbow(length(sumcpu)))
+# add a legend to the chart
+legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumcpu)))
+```
+
+For CPU runs time, each system shows consistency of running time on cpu
+
+```{r}
+# create a vector with sum of wall-clock time to plot
+sumker <- c(V3_return_sumker, V4.C_return_sumker, V4.M_return_sumker)
+# create a vector with labels for each value
+labels <- c("V3", "V4.C", "V4.M")
+# create a pie chart with default colors
+pie(sumker, labels = percent(sumker/sum(sumker)), 
+    main = "Pie Chart of Kernel Run Time of Three Systems Returns", col = rainbow(length(sumker)))
+# add a legend to the chart
+legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumker)))
+```
+
+ For the kernel run time for something returned, it also shows a consistency amont three systems.
+ 
+ 
+ **[We could repeat the whole process for the seperate dataset that returns one or none by copying what we did for the entire dataset. However, I wouldn't do it here since it is time consuming, but by doing so, I'm pretty sure there will be something interesting.]**
+ 
+ 
+ ###################################End of returns soemthing or none analysis#########################################
+ 
+ 
+ 
+# Here, we could do pair wise comparison among three systems
+
+```{r}
+V3_time <- V3[, 2:4]
+# Change the colum name into V3 so that it doesn't get confused
+names(V3_time)[1] <- "V3_real"
+names(V3_time)[2] <- "V3_user"
+names(V3_time)[3] <- "V3_sys"
+
+
+V4.C_time <- V4.C[, 2:4]
+# Change the colum name into V3 so that it doesn't get confused
+names(V4.C_time)[1] <- "V4.C_real"
+names(V4.C_time)[2] <- "V4.C_user"
+names(V4.C_time)[3] <- "V4.C_sys"
+
+
+V4.M_time <- V4.M[, 2:4]
+# Change the colum name into V4.M so that it doesn't get confused
+names(V4.M_time)[1] <- "V4.M_real"
+names(V4.M_time)[2] <- "V4.M_user"
+names(V4.M_time)[3] <- "V4.M_sys"
+
+# Create a dataset for pairwise comparesion
+
+pairwise <- cbind(V3_time, V4.C_time, V4.M_time)
+```
+
+
+We could write an for loop to loop through each row and see for each real, cpu, sys, who is the shortest time.
+
+We don't need to use percentage here since  we know we are comparing the same query every time
+
+
+```{r}
+# create variables to store counts
+V3_real_count <- 0
+V4.C_real_count <- 0
+V4.M_real_count <- 0
+
+V3_user_count <- 0
+V4.C_user_count <- 0
+V4.M_user_count <- 0
+
+V3_sys_count <- 0
+V4.C_sys_count <- 0
+V4.M_sys_count <- 0
+
+# Loop through each row of the dataset
+for (i in 1:nrow(pairwise)) {
+  # Compare real time among V3, V4.C, and V4.M
+  V3_real <- pairwise[i, "V3_real"]
+  V4.C_real <- pairwise[i, "V4.C_real"]
+  V4.M_real <- pairwise[i, "V4.M_real"]
+  
+  if (V3_real < V4.C_real & V3_real < V4.M_real) {
+    V3_real_count <- V3_real_count + 1
+  } else if (V4.C_real < V3_real & V4.C_real < V4.M_real) {
+    V4.C_real_count <- V4.C_real_count + 1
+  } else if (V4.M_real < V3_real & V4.M_real < V4.C_real) {
+    V4.M_real_count <- V4.M_real_count + 1
+  }
+  
+  # Compare user time among V3, V4.C, and V4.M
+  V3_user <- pairwise[i, "V3_user"]
+  V4.C_user <- pairwise[i, "V4.C_user"]
+  V4.M_user <- pairwise[i, "V4.M_user"]
+  
+  if (V3_user < V4.C_user & V3_user < V4.M_user) {
+    V3_user_count <- V3_user_count + 1
+  } else if (V4.C_user < V3_user & V4.C_user < V4.M_user) {
+    V4.C_user_count <- V4.C_user_count + 1
+  } else if (V4.M_user < V3_user & V4.M_user < V4.C_user) {
+    V4.M_user_count <- V4.M_user_count + 1
+  }
+  
+  # Compare sys time among V3, V4.C, and V4.M
+  V3_sys <- pairwise[i, "V3_sys"]
+  V4.C_sys <- pairwise[i, "V4.C_sys"]
+  V4.M_sys <- pairwise[i, "V4.M_sys"]
+  
+  if (V3_sys < V4.C_sys & V3_sys < V4.M_sys) {
+    V3_sys_count <- V3_sys_count + 1
+  } else if (V4.C_sys < V3_sys & V4.C_sys < V4.M_sys) {
+    V4.C_sys_count <- V4.C_sys_count + 1
+  } else if (V4.M_sys < V3_sys & V4.M_sys < V4.C_sys) {
+    V4.M_sys_count <- V4.M_sys_count + 1
+  }
+}
+
+# print the counts
+cat("Real time counts:\n")
+cat("V3:", V3_real_count, "\n")
+cat("V4.C:", V4.C_real_count, "\n")
+cat("V4.M:", V4.M_real_count, "\n\n")
+
+cat("User time counts:\n")
+cat("V3:", V3_user_count, "\n")
+cat("V4.C:", V4.C_user_count, "\n")
+cat("V4.M:", V4.M_user_count, "\n\n")
+
+cat("Kernel time counts:\n")
+cat("V3:", V3_sys_count, "\n")
+cat("V4.C:", V4.C_sys_count, "\n")
+cat("V4.M:", V4.M_sys_count, "\n\n")
+```
+
+From the print out infromation, we can see that for real time, V3 clearly is much faster than V4.C and V4.M and for cpu run time, the V3 also is the best for not far away from the V4.C and V4.M. For kernel time, V3 still the best but also very close.
+
+We can draw a plot to see it in a more intuitive way
+
+```{r}
+time_V3 <- data.frame(c(V3_real_count, V3_user_count, V3_sys_count), group = "V3")
+names(time_V3)[1] <- "Fequency"
+time_V4.C <- data.frame(c(V4.C_real_count, V4.C_user_count, V4.C_sys_count), group = "V4.C")
+names(time_V4.C)[1] <- "Fequency"
+time_V4.M <- data.frame(c(V4.M_real_count, V4.M_user_count, V4.M_sys_count), group = "V4.M")
+names(time_V4.M)[1] <- "Fequency"
+type <- data.frame(c("real", "user", "sys", "real", "user", "sys", "real", "user", "sys"))
+names(type)[1] <- "Type"
+# Concat a big dataset contains all the information
+time <- rbind(time_V3, time_V4.C, time_V4.M)
+time <- cbind(type,time)
+```
+
+```{r}
+# Create the histogram with three groups
+ggplot(data = time, aes(x = time$Type, y = time$Fequency, fill = time$group)) +
+  geom_histogram(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  labs(x = "Type", y = "Frequency", fill = "Group") +
+  ggtitle("Frequency of Duration Wall Clock Time Among Three Systems") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+ We can draw a plot to see it in a more intuitive way that V3 are more efficient.
+ 
+ 
+We can also do the same process for query that returns rows and none. However, due to the limitation of time. I won't do it here.
+
+# Future Work
+
+In Future Work, we can make use of the query history file. I have a general ideal of how to use it but I don't have enough time here.
+
+In the data cleanning process, I already clean up the query history file and we can look at the query type by split the spec with "--". If we combine these system log file with history file, we can combine what type of query usually takes more time (real, user, sys). What type of query is most efficient on which system, or what systems is most efficient for what type of query, etc. 
+
+There will be a lot of things we can do by combining the history query file with these three.
+
+There is also some deficiency of my analysis here.
+
+1. I assume there will only be four "__" in the query type, but it is not guranteed. I'm still trying to figure out a way of doing it
+
+2. The EDA I developed doesn't give a clear results
+
+3. I wrote too much redundant code. What I should do is design function in the beginning and make use of it instead of writing the function everytime
+
+4. Documentation is a bit messy.
+
+In conclusion, From all the EDA and table, V3 seems has the shortest  wall- clock time to run the query under any circustances we talked here. For CPU and kernel time, each system has close running time on cpu and kernel, V3 has a little bit of advantes
+
+My assumption is that for V3, the design is good, but for somereason, the no starts reach it limit (There is nearly 2 billion row) due to the deficiency of the database. Then, we need to change it. The V4.C and V4.M looks both fine, for my preference, I probably will go with V4.M since it performes a little bit better than V4.C
+
