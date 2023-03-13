@@ -954,7 +954,7 @@ As I mentioned above, the V3 system could work very well, and treat no as the pr
 By assumption, in this particular dataset, V3 performs well might because of some certain query type dominant. I guess V4.C and V4.M are extremely useful to look for certain types of query since it may only need to scan through 1/n dataset to look for particular rows.
 
 
-##############################################Query History Analysis##################################################
+#############################################Query History Analysis##################################################
 
 We could also do some basic analysis towards 
 ```{r}
@@ -990,3 +990,67 @@ combine <- cbind(history_sep, pairwise)
 ```
 
 From here, we can use the combine dataset to do all kinds of operation like finding patterns of severl query type, find query taht has largest run time of real, user, and sys and analyze these query.
+
+```{r}
+
+#Wall-Clock Time
+# Find the row index with the max value in real-V3
+max_real_V3_idex <- which.max(combine$V3_real)
+# Find the row index with the max value in real-V4.C
+max_real_V4.C_idex <- which.max(combine$V4.C_real)
+# Find the row index with the max value in real-V4.M
+max_real_V4.C_idex <- which.max(combine$V4.M_real)
+
+# CPU Run Time
+# Find the row index with the max value in real-V3
+max_cpu_V3_idex <- which.max(combine$V3_user)
+# Find the row index with the max value in real-V4.C
+max_cpu_V4.C_idex <- which.max(combine$V4.C_user)
+# Find the row index with the max value in real-V4.M
+max_cpu_V4.M_idex <- which.max(combine$V4.M_user)
+
+
+# Kernel Run Time
+# Find the row index with the max value in real-V3
+max_ker_V3_idex <- which.max(combine$V3_sys)
+# Find the row index with the max value in real-V4.C
+max_ker_V4.C_idex <- which.max(combine$V4.C_sys)
+# Find the row index with the max value in real-V4.M
+max_ker_V4.M_idex <- which.max(combine$V4.M_sys)
+```
+
+```{r}
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V3_real <- combine[max_real_V3_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.C_real <- combine[max_real_V4.C_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.M_real <- combine[max_real_V4.C_idex, ]
+
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V3_cpu <- combine[max_cpu_V3_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.C_cpu <- combine[max_cpu_V4.C_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.M_cpu <- combine[max_cpu_V4.M_idex, ]
+
+
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V3_ker <- combine[max_ker_V3_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.C_ker <- combine[max_ker_V4.C_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.M_ker <- combine[max_ker_V4.M_idex, ]
+
+
+# Building a dataset that contains the ma real, user, and sys run time among three systems
+max_query_df <- rbind(max_query_V3_real, max_query_V4.C_real, max_query_V4.M_real,
+                      max_query_V3_cpu, max_query_V4.C_cpu, max_query_V4.M_cpu,
+                      max_query_V3_ker, max_query_V4.C_ker, max_query_V4.M_ker)
+max_query_df
+```
+
+From the table, one thing we find interesting is that for max cpu run time seems linked quite tightly with time-0xRANGE.
+
+
+This way of exploring may not make much sense. Another way of analyzing this is to 
