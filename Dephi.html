@@ -1644,7 +1644,17 @@ library(tidyr)
 # Draw RidgeLine Plot
 library(ggridges)
 # For the pie chart
-library(scales)</code></pre>
+library(scales)
+# To mutate columns
+library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
 <p>Read dataset first, we have two different types of dataset with four
 files. There is one file about tab-delimited queries with two columns
 and a space-delimited results file with five columns.</p>
@@ -2120,7 +2130,7 @@ ggplot(data = duration, aes(x = duration$X.Time.Interval, y = duration$Frequency
 However, there is another pattern that duration from 0.051, the V4.M
 seems took longer than V3 and V4.C.</p>
 <p>Here, we are done with analyzing real time</p>
-<p>############################Now, let’s analyze the cpu run time and
+<p>###########################Now, let’s analyze the cpu run time and
 kernel run time.##################################</p>
 <pre class="r"><code># Loop through each row of the dataset
 for (i in 1:nrow(V3)) {
@@ -2621,7 +2631,7 @@ schema.</p>
 because of some certain query type dominant. I guess V4.C and V4.M are
 extremely useful to look for certain types of query since it may only
 need to scan through 1/n dataset to look for particular rows.</p>
-<p>##############################################Query History
+<p>#############################################Query History
 Analysis##################################################</p>
 <p>We could also do some basic analysis towards</p>
 <pre class="r"><code>type1 &lt;- unique(history_sep$type1)
@@ -2659,6 +2669,207 @@ identifier pull a number of spefici value.</p>
 <p>From here, we can use the combine dataset to do all kinds of
 operation like finding patterns of severl query type, find query taht
 has largest run time of real, user, and sys and analyze these query.</p>
+<pre class="r"><code>#Wall-Clock Time
+# Find the row index with the max value in real-V3
+max_real_V3_idex &lt;- which.max(combine$V3_real)
+# Find the row index with the max value in real-V4.C
+max_real_V4.C_idex &lt;- which.max(combine$V4.C_real)
+# Find the row index with the max value in real-V4.M
+max_real_V4.C_idex &lt;- which.max(combine$V4.M_real)
+
+# CPU Run Time
+# Find the row index with the max value in real-V3
+max_cpu_V3_idex &lt;- which.max(combine$V3_user)
+# Find the row index with the max value in real-V4.C
+max_cpu_V4.C_idex &lt;- which.max(combine$V4.C_user)
+# Find the row index with the max value in real-V4.M
+max_cpu_V4.M_idex &lt;- which.max(combine$V4.M_user)
+
+
+# Kernel Run Time
+# Find the row index with the max value in real-V3
+max_ker_V3_idex &lt;- which.max(combine$V3_sys)
+# Find the row index with the max value in real-V4.C
+max_ker_V4.C_idex &lt;- which.max(combine$V4.C_sys)
+# Find the row index with the max value in real-V4.M
+max_ker_V4.M_idex &lt;- which.max(combine$V4.M_sys)</code></pre>
+<pre class="r"><code># Subset the data frame to get the row with the max value in V3_real
+max_query_V3_real &lt;- combine[max_real_V3_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.C_real &lt;- combine[max_real_V4.C_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.M_real &lt;- combine[max_real_V4.C_idex, ]
+
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V3_cpu &lt;- combine[max_cpu_V3_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.C_cpu &lt;- combine[max_cpu_V4.C_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.M_cpu &lt;- combine[max_cpu_V4.M_idex, ]
+
+
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V3_ker &lt;- combine[max_ker_V3_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.C_ker &lt;- combine[max_ker_V4.C_idex, ]
+# Subset the data frame to get the row with the max value in V3_real
+max_query_V4.M_ker &lt;- combine[max_ker_V4.M_idex, ]
+
+
+# Building a dataset that contains the ma real, user, and sys run time among three systems
+max_query_df &lt;- rbind(max_query_V3_real, max_query_V4.C_real, max_query_V4.M_real,
+                      max_query_V3_cpu, max_query_V4.C_cpu, max_query_V4.M_cpu,
+                      max_query_V3_ker, max_query_V4.C_ker, max_query_V4.M_ker)
+max_query_df</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["type1"],"name":[1],"type":["chr"],"align":["left"]},{"label":["type2"],"name":[2],"type":["chr"],"align":["left"]},{"label":["type3"],"name":[3],"type":["chr"],"align":["left"]},{"label":["type4"],"name":[4],"type":["chr"],"align":["left"]},{"label":["actual"],"name":[5],"type":["chr"],"align":["left"]},{"label":["no"],"name":[6],"type":["int"],"align":["right"]},{"label":["V3_real"],"name":[7],"type":["dbl"],"align":["right"]},{"label":["V3_user"],"name":[8],"type":["dbl"],"align":["right"]},{"label":["V3_sys"],"name":[9],"type":["dbl"],"align":["right"]},{"label":["V4.C_real"],"name":[10],"type":["dbl"],"align":["right"]},{"label":["V4.C_user"],"name":[11],"type":["dbl"],"align":["right"]},{"label":["V4.C_sys"],"name":[12],"type":["dbl"],"align":["right"]},{"label":["V4.M_real"],"name":[13],"type":["dbl"],"align":["right"]},{"label":["V4.M_user"],"name":[14],"type":["dbl"],"align":["right"]},{"label":["V4.M_sys"],"name":[15],"type":["dbl"],"align":["right"]}],"data":[{"1":"asof-0x1","2":"geo-0x2","3":"signal-0x1","4":"time-0xRANGE","5":"SELECT t.geo_value, t.signal, t.time_value, t.issue, t.lag, t.value, t.stderr, t.sample_size, t.geo_type, t.source FROM covidcast t  JOIN (SELECT max(issue) max_issue, time_type, time_value, `source`, `signal`, geo_type, geo_value FROM covidcast t WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059))) AND (issue \\\\u003c= 20210731) GROUP BY time_type, time_value, `source`, `signal`, geo_type, geo_value) x ON x.max_issue = t.issue AND x.time_type = t.time_type AND x.time_value = t.time_value AND x.source = t.source AND x.signal = t.signal AND x.geo_type = t.geo_type AND x.geo_value = t.geo_value WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059)))  ORDER BY t.time_value ASC, t.geo_value ASC LIMIT 10000001","6":"3987","7":"17.121","8":"0.024","9":"0.009","10":"5.505","11":"0.025","12":"0.008","13":"5.049","14":"0.026","15":"0.006","_rn_":"3987"},{"1":"geo-0x200","2":"lag-0x1","3":"signal-0x1","4":"time-0x18","5":"SELECT t.geo_value, t.signal, t.time_value, t.direction, t.issue, t.lag, t.missing_value, t.missing_stderr, t.missing_sample_size, t.value, t.stderr, t.sample_size FROM covidcast t   WHERE ((t.source = doctor-visits AND (t.signal = smoothed_cli))) AND ((t.geo_type = county AND (t.geo_value = 42029 OR t.geo_value = 06059 OR t.geo_value = 06099 OR t.geo_value = 34003 OR t.geo_value = 34017 OR t.geo_value = 34023 OR t.geo_value = 34029 OR t.geo_value = 34031 OR t.geo_value = 34039 OR t.geo_value = 48439 OR t.geo_value = 36005 OR t.geo_value = 36047 OR t.geo_value = 36061 OR t.geo_value = 36081 OR t.geo_value = 36085 OR t.geo_value = 53033 OR t.geo_value = 53053 OR t.geo_value = 53061 OR t.geo_value = 53063 OR t.geo_value = 48121 OR t.geo_value = 01073 OR t.geo_value = 01089 OR t.geo_value = 01097 OR t.geo_value = 29095 OR t.geo_value = 37183 OR t.geo_value = 37067 OR t.geo_value = 37081 OR t.geo_value = 37119 OR t.geo_value = 25005 OR t.geo_value = 25009 OR t.geo_value = 25013 OR t.geo_value = 25017 OR t.geo_value = 25021 OR t.geo_value = 25023 OR t.geo_value = 25025 OR t.geo_value = 25027 OR t.geo_value = 04013 OR t.geo_value = 04019 OR t.geo_value = 04021 OR t.geo_value = 04027 OR t.geo_value = 05119 OR t.geo_value = 06001 OR t.geo_value = 06013 OR t.geo_value = 06019 OR t.geo_value = 06029 OR t.geo_value = 06037 OR t.geo_value = 06053 OR t.geo_value = 06065 OR t.geo_value = 06067 OR t.geo_value = 06071 OR t.geo_value = 06073 OR t.geo_value = 06075 OR t.geo_value = 06077 OR t.geo_value = 06081 OR t.geo_value = 06085 OR t.geo_value = 06095 OR t.geo_value = 06107 OR t.geo_value = 06111 OR t.geo_value = 08001 OR t.geo_value = 08005 OR t.geo_value = 08031 OR t.geo_value = 08041 OR t.geo_value = 08059 OR t.geo_value = 09001 OR t.geo_value = 09003 OR t.geo_value = 09009 OR t.geo_value = 10003 OR t.geo_value = 11001 OR t.geo_value = 12009 OR t.geo_value = 12011 OR t.geo_value = 12021 OR t.geo_value = 12031 OR t.geo_value = 12033 OR t.geo_value = 12057 OR t.geo_value = 12071 OR t.geo_value = 12081 OR t.geo_value = 12086 OR t.geo_value = 12095 OR t.geo_value = 12097 OR t.geo_value = 12099 OR t.geo_value = 12101 OR t.geo_value = 12103 OR t.geo_value = 12105 OR t.geo_value = 12115 OR t.geo_value = 12117 OR t.geo_value = 12127 OR t.geo_value = 13067 OR t.geo_value = 13089 OR t.geo_value = 13121 OR t.geo_value = 13135 OR t.geo_value = 16001 OR t.geo_value = 17031 OR t.geo_value = 17043 OR t.geo_value = 17089 OR t.geo_value = 17097 OR t.geo_value = 17197 OR t.geo_value = 18003 OR t.geo_value = 18057 OR t.geo_value = 18089 OR t.geo_value = 18097 OR t.geo_value = 18141 OR t.geo_value = 19153 OR t.geo_value = 20091 OR t.geo_value = 20173 OR t.geo_value = 21067 OR t.geo_value = 21111 OR t.geo_value = 22033 OR t.geo_value = 22051 OR t.geo_value = 24003 OR t.geo_value = 24005 OR t.geo_value = 24031 OR t.geo_value = 24033 OR t.geo_value = 24510 OR t.geo_value = 26049 OR t.geo_value = 26081 OR t.geo_value = 26099 OR t.geo_value = 26125 OR t.geo_value = 26163 OR t.geo_value = 27003 OR t.geo_value = 27037 OR t.geo_value = 27053 OR t.geo_value = 27123 OR t.geo_value = 29183 OR t.geo_value = 29189 OR t.geo_value = 31055 OR t.geo_value = 32003 OR t.geo_value = 32031 OR t.geo_value = 33011 OR t.geo_value = 34005 OR t.geo_value = 34007 OR t.geo_value = 34013 OR t.geo_value = 34025 OR t.geo_value = 34027 OR t.geo_value = 35001 OR t.geo_value = 36029 OR t.geo_value = 36055 OR t.geo_value = 36059 OR t.geo_value = 36067 OR t.geo_value = 36071 OR t.geo_value = 36087 OR t.geo_value = 36103 OR t.geo_value = 36119 OR t.geo_value = 39017 OR t.geo_value = 39035 OR t.geo_value = 39049 OR t.geo_value = 39061 OR t.geo_value = 39095 OR t.geo_value = 39113 OR t.geo_value = 39153 OR t.geo_value = 40109 OR t.geo_value = 40143 OR t.geo_value = 41051 OR t.geo_value = 42003 OR t.geo_value = 42011 OR t.geo_value = 42017 OR t.geo_value = 42045 OR t.geo_value = 42071 OR t.geo_value = 42077 OR t.geo_value = 42091 OR t.geo_value = 42101 OR t.geo_value = 42129 OR t.geo_value = 42133 OR t.geo_value = 44007 OR t.geo_value = 45019 OR t.geo_value = 45045 OR t.geo_value = 45051 OR t.geo_value = 45063 OR t.geo_value = 45079 OR t.geo_value = 45083 OR t.geo_value = 47037 OR t.geo_value = 47065 OR t.geo_value = 47093 OR t.geo_value = 47149 OR t.geo_value = 47157 OR t.geo_value = 48029 OR t.geo_value = 48039 OR t.geo_value = 48061 OR t.geo_value = 48085 OR t.geo_value = 48113 OR t.geo_value = 48141 OR t.geo_value = 48157 OR t.geo_value = 48167 OR t.geo_value = 48201 OR t.geo_value = 48215 OR t.geo_value = 48303 OR t.geo_value = 48339 OR t.geo_value = 48355 OR t.geo_value = 48453 OR t.geo_value = 48479 OR t.geo_value = 48491 OR t.geo_value = 49011 OR t.geo_value = 49035 OR t.geo_value = 49049 OR t.geo_value = 51059 OR t.geo_value = 51153 OR t.geo_value = 51810 OR t.geo_value = 55009 OR t.geo_value = 55025 OR t.geo_value = 55079 OR t.geo_value = 55133))) AND ((t.time_type = day AND (t.time_value = 20210206 OR t.time_value = 20210207 OR t.time_value = 20210208 OR t.time_value = 20210209 OR t.time_value = 20210210 OR t.time_value = 20210211 OR t.time_value = 20210212 OR t.time_value = 20210213 OR t.time_value = 20210214 OR t.time_value = 20210215 OR t.time_value = 20210216 OR t.time_value = 20210217 OR t.time_value = 20210218 OR t.time_value = 20210219 OR t.time_value = 20210220 OR t.time_value = 20210221 OR t.time_value = 20210222 OR t.time_value = 20210223))) AND t.lag = 0  ORDER BY t.signal ASC, t.time_value ASC, t.geo_value ASC, t.issue ASC LIMIT 3651","6":"4485","7":"0.522","8":"0.006","9":"0.000","10":"15.997","11":"0.007","12":"0.000","13":"12.788","14":"0.000","15":"0.006","_rn_":"4485"},{"1":"geo-0x200","2":"lag-0x1","3":"signal-0x1","4":"time-0x18","5":"SELECT t.geo_value, t.signal, t.time_value, t.direction, t.issue, t.lag, t.missing_value, t.missing_stderr, t.missing_sample_size, t.value, t.stderr, t.sample_size FROM covidcast t   WHERE ((t.source = doctor-visits AND (t.signal = smoothed_cli))) AND ((t.geo_type = county AND (t.geo_value = 42029 OR t.geo_value = 06059 OR t.geo_value = 06099 OR t.geo_value = 34003 OR t.geo_value = 34017 OR t.geo_value = 34023 OR t.geo_value = 34029 OR t.geo_value = 34031 OR t.geo_value = 34039 OR t.geo_value = 48439 OR t.geo_value = 36005 OR t.geo_value = 36047 OR t.geo_value = 36061 OR t.geo_value = 36081 OR t.geo_value = 36085 OR t.geo_value = 53033 OR t.geo_value = 53053 OR t.geo_value = 53061 OR t.geo_value = 53063 OR t.geo_value = 48121 OR t.geo_value = 01073 OR t.geo_value = 01089 OR t.geo_value = 01097 OR t.geo_value = 29095 OR t.geo_value = 37183 OR t.geo_value = 37067 OR t.geo_value = 37081 OR t.geo_value = 37119 OR t.geo_value = 25005 OR t.geo_value = 25009 OR t.geo_value = 25013 OR t.geo_value = 25017 OR t.geo_value = 25021 OR t.geo_value = 25023 OR t.geo_value = 25025 OR t.geo_value = 25027 OR t.geo_value = 04013 OR t.geo_value = 04019 OR t.geo_value = 04021 OR t.geo_value = 04027 OR t.geo_value = 05119 OR t.geo_value = 06001 OR t.geo_value = 06013 OR t.geo_value = 06019 OR t.geo_value = 06029 OR t.geo_value = 06037 OR t.geo_value = 06053 OR t.geo_value = 06065 OR t.geo_value = 06067 OR t.geo_value = 06071 OR t.geo_value = 06073 OR t.geo_value = 06075 OR t.geo_value = 06077 OR t.geo_value = 06081 OR t.geo_value = 06085 OR t.geo_value = 06095 OR t.geo_value = 06107 OR t.geo_value = 06111 OR t.geo_value = 08001 OR t.geo_value = 08005 OR t.geo_value = 08031 OR t.geo_value = 08041 OR t.geo_value = 08059 OR t.geo_value = 09001 OR t.geo_value = 09003 OR t.geo_value = 09009 OR t.geo_value = 10003 OR t.geo_value = 11001 OR t.geo_value = 12009 OR t.geo_value = 12011 OR t.geo_value = 12021 OR t.geo_value = 12031 OR t.geo_value = 12033 OR t.geo_value = 12057 OR t.geo_value = 12071 OR t.geo_value = 12081 OR t.geo_value = 12086 OR t.geo_value = 12095 OR t.geo_value = 12097 OR t.geo_value = 12099 OR t.geo_value = 12101 OR t.geo_value = 12103 OR t.geo_value = 12105 OR t.geo_value = 12115 OR t.geo_value = 12117 OR t.geo_value = 12127 OR t.geo_value = 13067 OR t.geo_value = 13089 OR t.geo_value = 13121 OR t.geo_value = 13135 OR t.geo_value = 16001 OR t.geo_value = 17031 OR t.geo_value = 17043 OR t.geo_value = 17089 OR t.geo_value = 17097 OR t.geo_value = 17197 OR t.geo_value = 18003 OR t.geo_value = 18057 OR t.geo_value = 18089 OR t.geo_value = 18097 OR t.geo_value = 18141 OR t.geo_value = 19153 OR t.geo_value = 20091 OR t.geo_value = 20173 OR t.geo_value = 21067 OR t.geo_value = 21111 OR t.geo_value = 22033 OR t.geo_value = 22051 OR t.geo_value = 24003 OR t.geo_value = 24005 OR t.geo_value = 24031 OR t.geo_value = 24033 OR t.geo_value = 24510 OR t.geo_value = 26049 OR t.geo_value = 26081 OR t.geo_value = 26099 OR t.geo_value = 26125 OR t.geo_value = 26163 OR t.geo_value = 27003 OR t.geo_value = 27037 OR t.geo_value = 27053 OR t.geo_value = 27123 OR t.geo_value = 29183 OR t.geo_value = 29189 OR t.geo_value = 31055 OR t.geo_value = 32003 OR t.geo_value = 32031 OR t.geo_value = 33011 OR t.geo_value = 34005 OR t.geo_value = 34007 OR t.geo_value = 34013 OR t.geo_value = 34025 OR t.geo_value = 34027 OR t.geo_value = 35001 OR t.geo_value = 36029 OR t.geo_value = 36055 OR t.geo_value = 36059 OR t.geo_value = 36067 OR t.geo_value = 36071 OR t.geo_value = 36087 OR t.geo_value = 36103 OR t.geo_value = 36119 OR t.geo_value = 39017 OR t.geo_value = 39035 OR t.geo_value = 39049 OR t.geo_value = 39061 OR t.geo_value = 39095 OR t.geo_value = 39113 OR t.geo_value = 39153 OR t.geo_value = 40109 OR t.geo_value = 40143 OR t.geo_value = 41051 OR t.geo_value = 42003 OR t.geo_value = 42011 OR t.geo_value = 42017 OR t.geo_value = 42045 OR t.geo_value = 42071 OR t.geo_value = 42077 OR t.geo_value = 42091 OR t.geo_value = 42101 OR t.geo_value = 42129 OR t.geo_value = 42133 OR t.geo_value = 44007 OR t.geo_value = 45019 OR t.geo_value = 45045 OR t.geo_value = 45051 OR t.geo_value = 45063 OR t.geo_value = 45079 OR t.geo_value = 45083 OR t.geo_value = 47037 OR t.geo_value = 47065 OR t.geo_value = 47093 OR t.geo_value = 47149 OR t.geo_value = 47157 OR t.geo_value = 48029 OR t.geo_value = 48039 OR t.geo_value = 48061 OR t.geo_value = 48085 OR t.geo_value = 48113 OR t.geo_value = 48141 OR t.geo_value = 48157 OR t.geo_value = 48167 OR t.geo_value = 48201 OR t.geo_value = 48215 OR t.geo_value = 48303 OR t.geo_value = 48339 OR t.geo_value = 48355 OR t.geo_value = 48453 OR t.geo_value = 48479 OR t.geo_value = 48491 OR t.geo_value = 49011 OR t.geo_value = 49035 OR t.geo_value = 49049 OR t.geo_value = 51059 OR t.geo_value = 51153 OR t.geo_value = 51810 OR t.geo_value = 55009 OR t.geo_value = 55025 OR t.geo_value = 55079 OR t.geo_value = 55133))) AND ((t.time_type = day AND (t.time_value = 20210206 OR t.time_value = 20210207 OR t.time_value = 20210208 OR t.time_value = 20210209 OR t.time_value = 20210210 OR t.time_value = 20210211 OR t.time_value = 20210212 OR t.time_value = 20210213 OR t.time_value = 20210214 OR t.time_value = 20210215 OR t.time_value = 20210216 OR t.time_value = 20210217 OR t.time_value = 20210218 OR t.time_value = 20210219 OR t.time_value = 20210220 OR t.time_value = 20210221 OR t.time_value = 20210222 OR t.time_value = 20210223))) AND t.lag = 0  ORDER BY t.signal ASC, t.time_value ASC, t.geo_value ASC, t.issue ASC LIMIT 3651","6":"4485","7":"0.522","8":"0.006","9":"0.000","10":"15.997","11":"0.007","12":"0.000","13":"12.788","14":"0.000","15":"0.006","_rn_":"44851"},{"1":"asof-0x1","2":"geo-0x2","3":"signal-0x1","4":"time-0xRANGE","5":"SELECT t.geo_value, t.signal, t.time_value, t.issue, t.lag, t.value, t.stderr, t.sample_size, t.geo_type, t.source FROM covidcast t  JOIN (SELECT max(issue) max_issue, time_type, time_value, `source`, `signal`, geo_type, geo_value FROM covidcast t WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059))) AND (issue \\\\u003c= 20210731) GROUP BY time_type, time_value, `source`, `signal`, geo_type, geo_value) x ON x.max_issue = t.issue AND x.time_type = t.time_type AND x.time_value = t.time_value AND x.source = t.source AND x.signal = t.signal AND x.geo_type = t.geo_type AND x.geo_value = t.geo_value WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059)))  ORDER BY t.time_value ASC, t.geo_value ASC LIMIT 10000001","6":"3987","7":"17.121","8":"0.024","9":"0.009","10":"5.505","11":"0.025","12":"0.008","13":"5.049","14":"0.026","15":"0.006","_rn_":"39871"},{"1":"asof-0x1","2":"geo-0x2","3":"signal-0x1","4":"time-0xRANGE","5":"SELECT t.geo_value, t.signal, t.time_value, t.issue, t.lag, t.value, t.stderr, t.sample_size, t.geo_type, t.source FROM covidcast t  JOIN (SELECT max(issue) max_issue, time_type, time_value, `source`, `signal`, geo_type, geo_value FROM covidcast t WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059))) AND (issue \\\\u003c= 20210731) GROUP BY time_type, time_value, `source`, `signal`, geo_type, geo_value) x ON x.max_issue = t.issue AND x.time_type = t.time_type AND x.time_value = t.time_value AND x.source = t.source AND x.signal = t.signal AND x.geo_type = t.geo_type AND x.geo_value = t.geo_value WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059)))  ORDER BY t.time_value ASC, t.geo_value ASC LIMIT 10000001","6":"3987","7":"17.121","8":"0.024","9":"0.009","10":"5.505","11":"0.025","12":"0.008","13":"5.049","14":"0.026","15":"0.006","_rn_":"39872"},{"1":"asof-0x1","2":"geo-0x2","3":"signal-0x1","4":"time-0xRANGE","5":"SELECT t.geo_value, t.signal, t.time_value, t.issue, t.lag, t.value, t.stderr, t.sample_size, t.geo_type, t.source FROM covidcast t  JOIN (SELECT max(issue) max_issue, time_type, time_value, `source`, `signal`, geo_type, geo_value FROM covidcast t WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059))) AND (issue \\\\u003c= 20210731) GROUP BY time_type, time_value, `source`, `signal`, geo_type, geo_value) x ON x.max_issue = t.issue AND x.time_type = t.time_type AND x.time_value = t.time_value AND x.source = t.source AND x.signal = t.signal AND x.geo_type = t.geo_type AND x.geo_value = t.geo_value WHERE t.time_type = day AND ((t.source = indicator-combination AND (t.signal = confirmed_cumulative_num))) AND time_value BETWEEN 20210301 AND 20210731 AND ((t.geo_type = county AND (t.geo_value = 06037 OR t.geo_value = 06059)))  ORDER BY t.time_value ASC, t.geo_value ASC LIMIT 10000001","6":"3987","7":"17.121","8":"0.024","9":"0.009","10":"5.505","11":"0.025","12":"0.008","13":"5.049","14":"0.026","15":"0.006","_rn_":"39873"},{"1":"geo-0xSTAR","2":"issue-0xRANGE","3":"signal-0x1","4":"time-0x1","5":"SELECT t.geo_value, t.signal, t.time_value, t.direction, t.issue, t.lag, t.missing_value, t.missing_stderr, t.missing_sample_size, t.value, t.stderr, t.sample_size FROM covidcast t   WHERE ((t.source = safegraph AND (t.signal = part_time_work_prop))) AND (t.geo_type = county) AND ((t.time_type = day AND (t.time_value = 20200308))) AND (t.issue BETWEEN 20200101 AND 20210829)  ORDER BY t.signal ASC, t.time_value ASC, t.geo_value ASC, t.issue ASC LIMIT 3651","6":"5241","7":"0.061","8":"0.000","9":"0.010","10":"0.092","11":"0.011","12":"0.000","13":"0.082","14":"0.010","15":"0.000","_rn_":"5241"},{"1":"asof-0x1","2":"geo-0x1","3":"signal-0x1","4":"time-0x120","5":"SELECT t.geo_value, t.signal, t.time_value, t.direction, t.issue, t.lag, t.missing_value, t.missing_stderr, t.missing_sample_size, t.value, t.stderr, t.sample_size FROM covidcast t  JOIN (SELECT max(issue) max_issue, time_type, time_value, `source`, `signal`, geo_type, geo_value FROM covidcast t WHERE ((t.source = jhu-csse AND (t.signal = confirmed_incidence_num))) AND ((t.geo_type = county AND (t.geo_value = 06065))) AND ((t.time_type = day AND (t.time_value = 20210314 OR t.time_value = 20210315 OR t.time_value = 20210316 OR t.time_value = 20210317 OR t.time_value = 20210318 OR t.time_value = 20210319 OR t.time_value = 20210320 OR t.time_value = 20210321 OR t.time_value = 20210322 OR t.time_value = 20210323 OR t.time_value = 20210324 OR t.time_value = 20210325 OR t.time_value = 20210326 OR t.time_value = 20210327 OR t.time_value = 20210328 OR t.time_value = 20210329 OR t.time_value = 20210330 OR t.time_value = 20210331 OR t.time_value = 20210401 OR t.time_value = 20210402 OR t.time_value = 20210403 OR t.time_value = 20210404 OR t.time_value = 20210405 OR t.time_value = 20210406 OR t.time_value = 20210407 OR t.time_value = 20210408 OR t.time_value = 20210409 OR t.time_value = 20210410 OR t.time_value = 20210411 OR t.time_value = 20210412 OR t.time_value = 20210413 OR t.time_value = 20210414 OR t.time_value = 20210415 OR t.time_value = 20210416 OR t.time_value = 20210417 OR t.time_value = 20210418 OR t.time_value = 20210419 OR t.time_value = 20210420 OR t.time_value = 20210421 OR t.time_value = 20210422 OR t.time_value = 20210423 OR t.time_value = 20210424 OR t.time_value = 20210425 OR t.time_value = 20210426 OR t.time_value = 20210427 OR t.time_value = 20210428 OR t.time_value = 20210429 OR t.time_value = 20210430 OR t.time_value = 20210501 OR t.time_value = 20210502 OR t.time_value = 20210503 OR t.time_value = 20210504 OR t.time_value = 20210505 OR t.time_value = 20210506 OR t.time_value = 20210507 OR t.time_value = 20210508 OR t.time_value = 20210509 OR t.time_value = 20210510 OR t.time_value = 20210511 OR t.time_value = 20210512 OR t.time_value = 20210513 OR t.time_value = 20210514 OR t.time_value = 20210515 OR t.time_value = 20210516 OR t.time_value = 20210517 OR t.time_value = 20210518 OR t.time_value = 20210519 OR t.time_value = 20210520 OR t.time_value = 20210521 OR t.time_value = 20210522 OR t.time_value = 20210523 OR t.time_value = 20210524 OR t.time_value = 20210525 OR t.time_value = 20210526 OR t.time_value = 20210527 OR t.time_value = 20210528 OR t.time_value = 20210529 OR t.time_value = 20210530 OR t.time_value = 20210531 OR t.time_value = 20210601 OR t.time_value = 20210602 OR t.time_value = 20210603 OR t.time_value = 20210604 OR t.time_value = 20210605 OR t.time_value = 20210606 OR t.time_value = 20210607 OR t.time_value = 20210608 OR t.time_value = 20210609 OR t.time_value = 20210610 OR t.time_value = 20210611 OR t.time_value = 20210612 OR t.time_value = 20210613 OR t.time_value = 20210614 OR t.time_value = 20210615 OR t.time_value = 20210616 OR t.time_value = 20210617 OR t.time_value = 20210618 OR t.time_value = 20210619 OR t.time_value = 20210620 OR t.time_value = 20210621 OR t.time_value = 20210622 OR t.time_value = 20210623 OR t.time_value = 20210624 OR t.time_value = 20210625 OR t.time_value = 20210626 OR t.time_value = 20210627 OR t.time_value = 20210628 OR t.time_value = 20210629 OR t.time_value = 20210630 OR t.time_value = 20210701 OR t.time_value = 20210702 OR t.time_value = 20210703 OR t.time_value = 20210704 OR t.time_value = 20210705 OR t.time_value = 20210706 OR t.time_value = 20210707 OR t.time_value = 20210708 OR t.time_value = 20210709 OR t.time_value = 20210710 OR t.time_value = 20210711))) AND (issue \\\\u003c= 20210712) GROUP BY time_type, time_value, `source`, `signal`, geo_type, geo_value) x ON x.max_issue = t.issue AND x.time_type = t.time_type AND x.time_value = t.time_value AND x.source = t.source AND x.signal = t.signal AND x.geo_type = t.geo_type AND x.geo_value = t.geo_value WHERE ((t.source = jhu-csse AND (t.signal = confirmed_incidence_num))) AND ((t.geo_type = county AND (t.geo_value = 06065))) AND ((t.time_type = day AND (t.time_value = 20210314 OR t.time_value = 20210315 OR t.time_value = 20210316 OR t.time_value = 20210317 OR t.time_value = 20210318 OR t.time_value = 20210319 OR t.time_value = 20210320 OR t.time_value = 20210321 OR t.time_value = 20210322 OR t.time_value = 20210323 OR t.time_value = 20210324 OR t.time_value = 20210325 OR t.time_value = 20210326 OR t.time_value = 20210327 OR t.time_value = 20210328 OR t.time_value = 20210329 OR t.time_value = 20210330 OR t.time_value = 20210331 OR t.time_value = 20210401 OR t.time_value = 20210402 OR t.time_value = 20210403 OR t.time_value = 20210404 OR t.time_value = 20210405 OR t.time_value = 20210406 OR t.time_value = 20210407 OR t.time_value = 20210408 OR t.time_value = 20210409 OR t.time_value = 20210410 OR t.time_value = 20210411 OR t.time_value = 20210412 OR t.time_value = 20210413 OR t.time_value = 20210414 OR t.time_value = 20210415 OR t.time_value = 20210416 OR t.time_value = 20210417 OR t.time_value = 20210418 OR t.time_value = 20210419 OR t.time_value = 20210420 OR t.time_value = 20210421 OR t.time_value = 20210422 OR t.time_value = 20210423 OR t.time_value = 20210424 OR t.time_value = 20210425 OR t.time_value = 20210426 OR t.time_value = 20210427 OR t.time_value = 20210428 OR t.time_value = 20210429 OR t.time_value = 20210430 OR t.time_value = 20210501 OR t.time_value = 20210502 OR t.time_value = 20210503 OR t.time_value = 20210504 OR t.time_value = 20210505 OR t.time_value = 20210506 OR t.time_value = 20210507 OR t.time_value = 20210508 OR t.time_value = 20210509 OR t.time_value = 20210510 OR t.time_value = 20210511 OR t.time_value = 20210512 OR t.time_value = 20210513 OR t.time_value = 20210514 OR t.time_value = 20210515 OR t.time_value = 20210516 OR t.time_value = 20210517 OR t.time_value = 20210518 OR t.time_value = 20210519 OR t.time_value = 20210520 OR t.time_value = 20210521 OR t.time_value = 20210522 OR t.time_value = 20210523 OR t.time_value = 20210524 OR t.time_value = 20210525 OR t.time_value = 20210526 OR t.time_value = 20210527 OR t.time_value = 20210528 OR t.time_value = 20210529 OR t.time_value = 20210530 OR t.time_value = 20210531 OR t.time_value = 20210601 OR t.time_value = 20210602 OR t.time_value = 20210603 OR t.time_value = 20210604 OR t.time_value = 20210605 OR t.time_value = 20210606 OR t.time_value = 20210607 OR t.time_value = 20210608 OR t.time_value = 20210609 OR t.time_value = 20210610 OR t.time_value = 20210611 OR t.time_value = 20210612 OR t.time_value = 20210613 OR t.time_value = 20210614 OR t.time_value = 20210615 OR t.time_value = 20210616 OR t.time_value = 20210617 OR t.time_value = 20210618 OR t.time_value = 20210619 OR t.time_value = 20210620 OR t.time_value = 20210621 OR t.time_value = 20210622 OR t.time_value = 20210623 OR t.time_value = 20210624 OR t.time_value = 20210625 OR t.time_value = 20210626 OR t.time_value = 20210627 OR t.time_value = 20210628 OR t.time_value = 20210629 OR t.time_value = 20210630 OR t.time_value = 20210701 OR t.time_value = 20210702 OR t.time_value = 20210703 OR t.time_value = 20210704 OR t.time_value = 20210705 OR t.time_value = 20210706 OR t.time_value = 20210707 OR t.time_value = 20210708 OR t.time_value = 20210709 OR t.time_value = 20210710 OR t.time_value = 20210711)))  ORDER BY t.signal ASC, t.time_value ASC, t.geo_value ASC, t.issue ASC LIMIT 3651","6":"1","7":"0.424","8":"0.003","9":"0.003","10":"1.316","11":"0.000","12":"0.011","13":"1.838","14":"0.007","15":"0.000","_rn_":"1"},{"1":"geo-0xSTAR","2":"issue-0xRANGE","3":"signal-0x1","4":"time-0x1","5":"SELECT t.geo_value, t.signal, t.time_value, t.direction, t.issue, t.lag, t.missing_value, t.missing_stderr, t.missing_sample_size, t.value, t.stderr, t.sample_size FROM covidcast t   WHERE ((t.source = safegraph AND (t.signal = full_time_work_prop))) AND (t.geo_type = county) AND ((t.time_type = day AND (t.time_value = 20200618))) AND (t.issue BETWEEN 20200101 AND 20210826)  ORDER BY t.signal ASC, t.time_value ASC, t.geo_value ASC, t.issue ASC LIMIT 3651","6":"6071","7":"0.083","8":"0.011","9":"0.000","10":"2.232","11":"0.011","12":"0.000","13":"0.784","14":"0.000","15":"0.011","_rn_":"6071"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>From the table, one thing we find interesting is that for max cpu run
+time seems linked quite tightly with time-0xRANGE.</p>
+<p>This way of exploring may not make much sense. Another way of
+analyzing this is based on the the frequency of each type of query and
+do</p>
+</div>
+<div id="select-the-5-percent-of-the-shortest-real-run-time" class="section level1">
+<h1>Select the 5% percent of the shortest real run time</h1>
+<pre class="r"><code># Get the number of rows in the data frame
+n &lt;- nrow(combine)
+# Select the smallest 5% of values for column &#39;value&#39;
+# I should be able to write a for loop from 7th colmn to the end
+
+#V3
+V3_real_smallest &lt;- combine %&gt;% 
+  slice_min(V3_real, n = floor(0.05 * n))
+V3_real_smallest &lt;- V3_real_smallest[, 1:4]
+V3_user_smallest &lt;- combine %&gt;% 
+  slice_min(V3_user, n = floor(0.05 * n))
+V3_user_smallest &lt;- V3_user_smallest[, 1:4]
+V3_sys_smallest &lt;- combine %&gt;% 
+  slice_min(V3_sys, n = floor(0.05 * n))
+V3_sys_smallest &lt;- V3_sys_smallest[, 1:4]
+
+
+#V4.C
+V4.C_real_smallest &lt;- combine %&gt;% 
+  slice_min(V4.C_real, n = floor(0.05 * n))
+V4.C_real_smallest &lt;- V4.C_real_smallest[, 1:4]
+V4.C_user_smallest &lt;- combine %&gt;% 
+  slice_min(V4.C_user, n = floor(0.05 * n))
+V4.C_user_smallest &lt;- V4.C_user_smallest[, 1:4]
+V4.C_sys_smallest &lt;- combine %&gt;% 
+  slice_min(V4.C_sys, n = floor(0.05 * n))
+V4.C_sys_smallest &lt;- V4.C_sys_smallest[, 1:4]
+
+
+
+#V4.M
+V4.M_real_smallest &lt;- combine %&gt;% 
+  slice_min(V4.M_real, n = floor(0.05 * n))
+V4.M_real_smallest &lt;- V4.M_real_smallest[, 1:4]
+V4.M_user_smallest &lt;- combine %&gt;% 
+  slice_min(V4.M_user, n = floor(0.05 * n))
+V4.M_user_smallest &lt;- V4.M_user_smallest[, 1:4]
+V4.M_sys_smallest &lt;- combine %&gt;% 
+  slice_min(V4.M_sys, n = floor(0.05 * n))
+V4.M_sys_smallest &lt;- V4.M_sys_smallest[, 1:4]</code></pre>
+<pre class="r"><code># Define a function called type_freq
+# Find the frequency of query type in 5% smallest run time
+#input: dataframe
+type_freq &lt;- function(df) {
+  freq_tables &lt;- list() # initialize an empty list to store frequency tables for each column
+  
+  # Loop through each column in the data frame
+  for (i in 1:ncol(df)) {
+    
+    # Get the column name
+    col_name &lt;- colnames(df)[i]
+    
+    # Create a frequency table for the column
+    freq_table &lt;- table(df[[i]])
+    
+    # Assign the frequency table to the list with the column name as the list element name
+    freq_tables[[col_name]] &lt;- freq_table
+    
+  }
+  
+  # Print the frequency tables for each column
+  print(freq_tables)
+}</code></pre>
+<pre class="r"><code>type_freq(V3_real_smallest)</code></pre>
+<pre><code>## $type1
+## 
+##   asof-0x1    geo-0x1 geo-0xSTAR 
+##        267         65       3578 
+## 
+## $type2
+## 
+##       geo-0x1    geo-0xSTAR issue-0xRANGE 
+##           261             6          3643 
+## 
+## $type3
+## 
+## signal-0x1 
+##       3910 
+## 
+## $type4
+## 
+## time-0x1 
+##     3910</code></pre>
+<pre class="r"><code>type_freq(V4.C_real_smallest)</code></pre>
+<pre><code>## $type1
+## 
+##   asof-0x1    geo-0x1 geo-0xSTAR 
+##       1139         33        953 
+## 
+## $type2
+## 
+##       geo-0x1    geo-0xSTAR issue-0xRANGE 
+##          1138             1           986 
+## 
+## $type3
+## 
+## signal-0x1 
+##       2125 
+## 
+## $type4
+## 
+##     time-0x1 time-0xRANGE 
+##         2124            1</code></pre>
+<pre class="r"><code>type_freq(V4.M_real_smallest)</code></pre>
+<pre><code>## $type1
+## 
+##   asof-0x1 geo-0xSTAR 
+##       1690       1988 
+## 
+## $type2
+## 
+##       geo-0x1    geo-0xSTAR     issue-0x1 issue-0xRANGE 
+##          1641            49             1          1987 
+## 
+## $type3
+## 
+## signal-0x1 
+##       3678 
+## 
+## $type4
+## 
+##     time-0x1     time-0x3 time-0xRANGE 
+##         3676            1            1</code></pre>
+</div>
+<div id="i-know-this-is-a-list-but-i-cant-subract-the-value-in-this-list.-therefore-i-cant-do-visulization-to-this." class="section level1">
+<h1>I know this is a list, but I can’t subract the value in this list.
+Therefore, I can’t do visulization to this.</h1>
+<p>This is meaningful since we choose smallest 5% of data for each
+system and for each run time. Then, we can find the corresponding query
+type to see what is unique or what is the most frequent to maybe find
+something interesting.</p>
+<p>#############################################Work Done
+Here##########################################################</p>
+<p>There are certainly a lot of things I can futher analysis. I believe
+once I have the stucture of the scheme or the return column, I can do
+more.</p>
 </div>
 
 

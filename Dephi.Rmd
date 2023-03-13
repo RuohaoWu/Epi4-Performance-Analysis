@@ -24,6 +24,8 @@ library(tidyr)
 library(ggridges)
 # For the pie chart
 library(scales)
+# To mutate columns
+library(dplyr)
 ```
 
 Read dataset first, we have two different types of dataset with four files. There is one file about tab-delimited queries with two columns and a space-delimited results file with five columns.
@@ -439,7 +441,7 @@ This plot also matches what we find in previous plot and table. However, there i
 
 Here, we are done with analyzing real time
 
-############################Now, let's analyze the cpu run time and kernel run time.##################################
+###########################Now, let's analyze the cpu run time and kernel run time.##################################
 
 ```{r}
 # Loop through each row of the dataset
@@ -1053,4 +1055,98 @@ max_query_df
 From the table, one thing we find interesting is that for max cpu run time seems linked quite tightly with time-0xRANGE.
 
 
-This way of exploring may not make much sense. Another way of analyzing this is to 
+This way of exploring may not make much sense. Another way of analyzing this is based on the the frequency of each type of query and do
+
+
+# Select the 5% percent of the shortest real run time
+
+```{r}
+# Get the number of rows in the data frame
+n <- nrow(combine)
+# Select the smallest 5% of values for column 'value'
+# I should be able to write a for loop from 7th colmn to the end
+
+#V3
+V3_real_smallest <- combine %>% 
+  slice_min(V3_real, n = floor(0.05 * n))
+V3_real_smallest <- V3_real_smallest[, 1:4]
+V3_user_smallest <- combine %>% 
+  slice_min(V3_user, n = floor(0.05 * n))
+V3_user_smallest <- V3_user_smallest[, 1:4]
+V3_sys_smallest <- combine %>% 
+  slice_min(V3_sys, n = floor(0.05 * n))
+V3_sys_smallest <- V3_sys_smallest[, 1:4]
+
+
+#V4.C
+V4.C_real_smallest <- combine %>% 
+  slice_min(V4.C_real, n = floor(0.05 * n))
+V4.C_real_smallest <- V4.C_real_smallest[, 1:4]
+V4.C_user_smallest <- combine %>% 
+  slice_min(V4.C_user, n = floor(0.05 * n))
+V4.C_user_smallest <- V4.C_user_smallest[, 1:4]
+V4.C_sys_smallest <- combine %>% 
+  slice_min(V4.C_sys, n = floor(0.05 * n))
+V4.C_sys_smallest <- V4.C_sys_smallest[, 1:4]
+
+
+
+#V4.M
+V4.M_real_smallest <- combine %>% 
+  slice_min(V4.M_real, n = floor(0.05 * n))
+V4.M_real_smallest <- V4.M_real_smallest[, 1:4]
+V4.M_user_smallest <- combine %>% 
+  slice_min(V4.M_user, n = floor(0.05 * n))
+V4.M_user_smallest <- V4.M_user_smallest[, 1:4]
+V4.M_sys_smallest <- combine %>% 
+  slice_min(V4.M_sys, n = floor(0.05 * n))
+V4.M_sys_smallest <- V4.M_sys_smallest[, 1:4]
+
+```
+
+```{r}
+# Define a function called type_freq
+# Find the frequency of query type in 5% smallest run time
+#input: dataframe
+type_freq <- function(df) {
+  freq_tables <- list() # initialize an empty list to store frequency tables for each column
+  
+  # Loop through each column in the data frame
+  for (i in 1:ncol(df)) {
+    
+    # Get the column name
+    col_name <- colnames(df)[i]
+    
+    # Create a frequency table for the column
+    freq_table <- table(df[[i]])
+    
+    # Assign the frequency table to the list with the column name as the list element name
+    freq_tables[[col_name]] <- freq_table
+    
+  }
+  
+  # Print the frequency tables for each column
+  print(freq_tables)
+}
+```
+
+
+```{r}
+type_freq(V3_real_smallest)
+```
+
+```{r}
+type_freq(V4.C_real_smallest)
+```
+
+```{r}
+type_freq(V4.M_real_smallest)
+```
+# I know this is a list, but I can't subract the value in this list. Therefore, I can't do visulization to this.
+
+This is meaningful since we choose smallest 5% of data for each system and for each run time. Then, we can find the corresponding query type to see what is unique or what is the most frequent to maybe find something interesting.
+
+#############################################Work Done Here##########################################################
+
+
+There are certainly a lot of things I can futher analysis. I believe once I have the stucture of the scheme or the return column, I can do more.
