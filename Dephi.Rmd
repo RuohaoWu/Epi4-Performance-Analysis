@@ -150,6 +150,9 @@ Should further clean the data in history, since we know the format of query_type
 # Need to identify how many axis_name then to create extra column 
 history_sep <- separate(history, type, 
                     into = c("type1", "type2", "type3", "type4"), sep = "__")
+
+# Could use regexp() to find pattern
+# regexp()
 ```
 
 Let's stop here for initial data cleaning
@@ -191,6 +194,7 @@ let's focous on real run time.
 let's take a look at the distribution
 
 ```{r}
+
 # From the plot, the real run time is highly right skewed for V3
 ggplot(V3, aes(x=real)) + 
   geom_histogram(binwidth=0.01) +
@@ -262,6 +266,8 @@ V4.C_head3 <- data.frame(head(V4.C_real_freq, n = 3),  group = "V4.C")
 V4.M_head3 <- data.frame(head(V4.M_real_freq, n = 3),  group = "V4.M")
 head3 <- rbind(V3_head3, V4.C_head3, V4.M_head3)
 # Create the histogram with three groups
+# Here might be a bit confuseing, since I rank top 3 frequency
+#Still trying to fix this by making each binsize identical
 ggplot(data = head3, aes(x = wall.clock.time, y = Freq, fill = group)) +
   geom_histogram(stat = "identity", position = "dodge") +
   scale_fill_manual(values = c("red", "blue", "green")) +
@@ -337,7 +343,7 @@ V3_sum_freq_0.5 <- sum(subset
 V3_sum_freq_0.501 <- sum(subset(V3_real_freq, V3_real_freq$"wall clock time" >= 0.501)$Freq)
 
 V3_freq <- data.frame(col1 = c("0 and 0.05", "0.051 and 0.1",
-                               "0.101 and 0.5", ">=0.501"), 
+                               "0.101 and 0.5", "0.501 and greater"), 
                       col2 = c(V3_sum_freq_0.05, V3_sum_freq_0.1,
                                V3_sum_freq_0.5, V3_sum_freq_0.501))
 names(V3_freq)[1] <- " Time Interval"
@@ -370,7 +376,7 @@ V4.C_sum_freq_0.5 <- sum(subset
 V4.C_sum_freq_0.501 <- sum(subset(V4.C_real_freq, V4.C_real_freq$"wall clock time" >= 0.501)$Freq)
 
 V4.C_freq <- data.frame(col1 = c("0 and 0.05", "0.051 and 0.1",
-                               "0.101 and 0.5", ">=0.501"), 
+                               "0.101 and 0.5", "0.501 and greater"), 
                       col2 = c(V4.C_sum_freq_0.05, V4.C_sum_freq_0.1,
                                V4.C_sum_freq_0.5, V4.C_sum_freq_0.501))
 names(V4.C_freq)[1] <- " Time Interval"
@@ -402,7 +408,7 @@ V4.M_sum_freq_0.5 <- sum(subset
 V4.M_sum_freq_0.501 <- sum(subset(V4.M_real_freq, V4.M_real_freq$"wall clock time" >= 0.501)$Freq)
 
 V4.M_freq <- data.frame(col1 = c("0 and 0.05", "0.051 and 0.1",
-                               "0.101 and 0.5", ">=0.501"), 
+                               "0.101 and 0.5", "0.501 and greater"), 
                       col2 = c(V4.M_sum_freq_0.05, V4.M_sum_freq_0.1,
                                V4.M_sum_freq_0.5, V4.M_sum_freq_0.501))
 names(V4.M_freq)[1] <- " Time Interval"
@@ -772,7 +778,7 @@ legend("right", legend = labels, cex = 0.8, fill = rainbow(length(sumker)))
  
  
  
-# Here, we could do pair wise comparison among three systems
+# Here, we could do pairwise comparison among three systems
 
 ```{r}
 V3_time <- V3[, 2:4]
@@ -931,5 +937,39 @@ There is also some deficiency of my analysis here.
 
 In conclusion, From all the EDA and table, V3 seems has the shortest  wall- clock time to run the query under any circustances we talked here. For CPU and kernel time, each system has close running time on cpu and kernel, V3 has a little bit of advantes
 
-My assumption is that for V3, the design is good, but for somereason, the no starts reach it limit (There is nearly 2 billion row) due to the deficiency of the database. Then, we need to change it. The V4.C and V4.M looks both fine, for my preference, I probably will go with V4.M since it performes a little bit better than V4.C
+My assumption is that for V3, the design is good, but for some reason, the no starts reach it limit (There is nearly 2 billion row) due to the deficiency of the database. Then, we need to change it. The V4.C and V4.M looks both fine, for my preference, I probably will go with V4.M since it performes a little bit better than V4.C
 
+I will do a further assumption towawrds V3, V4.C, and V4.M dataset and why we are developing new system.
+
+As I mentioned above, the V3 system could work very well, and treat no as the primary key. However, as the number of the observation increases, the number of primary key starts to reach it limits and it is also very hard to come up with a new primary key. Therefore, developer developed two new system called V4.C and V4.M. My assumeption is that for constraint type of system, it largely reduce the useless and redundant information. The merged based system cuold have multiple databse in different location and it largely extent avilibility of the schema.
+
+
+By assumption, in this particular dataset, V3 performs well might because of some certain query type dominant. I guess V4.C and V4.M are extremely useful to look for certain types of query since it may only need to scan through 1/n dataset to look for particular rows.
+
+
+##############################################Query History Analysis##################################################
+
+We could also do some basic analysis towards 
+```{r}
+type1 <- unique(history_sep$type1)
+type2 <- unique(history_sep$type2)
+type3 <- unique(history_sep$type3)
+type4 <- unique(history_sep$type4)
+```
+
+```{r}
+type1
+```
+
+```{r}
+type2
+```
+
+
+```{r}
+type3
+```
+
+```{r}
+type4
+```
