@@ -194,7 +194,14 @@ let's focous on real run time.
 let's take a look at the distribution
 
 ```{r}
+# The idea here is to find some tunning parameter that can seet the upper bound of the xlim
+# I haven't find one yet
+#real_V3 <- quantile(V3$real)[4]
+```
 
+```{r}
+# Here I set 0.5 as the upper bound of the xlim for this particular dataset
+# It is not efficient
 # From the plot, the real run time is highly right skewed for V3
 ggplot(V3, aes(x=real)) + 
   geom_histogram(binwidth=0.01) +
@@ -259,7 +266,7 @@ V4.M_real_freq <- V4.M_real_freq[order(V4.M_real_freq$Freq, decreasing = TRUE), 
 V4.M_real_freq
 ```
 
-```{r}
+```{r, warning=FALSE}
 # Create the dataset with three groups only contains head three rows
 V3_head3 <- data.frame(head(V3_real_freq, n = 3), group = "V3")
 V4.C_head3 <- data.frame(head(V4.C_real_freq, n = 3),  group = "V4.C")
@@ -293,7 +300,7 @@ V4.M_desc_time <- V4.M_real_freq[order(V4.M_real_freq$`wall clock time`), ]
 V4.M_desc_time
 ```
 
-```{r}
+```{r, warning=FALSE}
 # Create the dataset with three groups only contains head three rows
 V3_time_head3 <- data.frame(head(V3_desc_time, n = 3), group = "V3")
 V4.C_time_head3 <- data.frame(head(V4.C_desc_time, n = 3),  group = "V4.C")
@@ -970,6 +977,16 @@ type2
 type3
 ```
 
+Here, since the signal- 0*1, for this particular dataset, the signal identifier pull a number of spefici value.
+
 ```{r}
 type4
 ```
+
+We can combine the history dataset with the system log file
+
+```{r}
+combine <- cbind(history_sep, pairwise)
+```
+
+From here, we can use the combine dataset to do all kinds of operation like finding patterns of severl query type, find query taht has largest run time of real, user, and sys and analyze these query.
